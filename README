@@ -1,0 +1,5 @@
+Step 1.
+python3 setup.py install --user
+
+Step 2.
+python3 tests/test_gae.py
