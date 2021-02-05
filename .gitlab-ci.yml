@@ -9,7 +9,7 @@ stages:
 build:
   stage: build
   script:
-    - export TORCH_CUDA_ARCH_LIST="7.0"
+    - export TORCH_CUDA_ARCH_LIST="7.5"
     - pip install setuptools wheel
     - python setup.py bdist_wheel upload -r http://10.198.8.31:23290
   only:
