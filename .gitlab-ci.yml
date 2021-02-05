@@ -13,7 +13,7 @@ build:
     - pip install setuptools wheel
     - python setup.py bdist_wheel upload -r http://10.198.8.31:23290
   tags:
-    - p4
+    - gtx1060
   only:
     - master
     - build-dev
