@@ -1,0 +1,16 @@
+image: "registry.sensetime.com/xlab/sensestar-docker:cuda92-centos7"
+
+variables:
+  CI: "true"
+
+stages:
+  - build
+
+build:
+  stage: build
+  script:
+    - python setup.py bdist_wheel upload -r http://10.198.8.31:23290
+  only:
+    - master
+    - build-dev
+
