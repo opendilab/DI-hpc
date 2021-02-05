@@ -1,5 +1,5 @@
-# image: "registry.sensetime.com/xlab/sensestar-docker:cuda92-centos7"
-image: "registry.sensetime.com/spring/spring-devel:v0.2.0_cuda9.0_20201116"
+image: "registry.sensetime.com/xlab/sensestar-docker:cuda92-centos7"
+# image: "registry.sensetime.com/spring/spring-devel:v0.2.0_cuda9.0_20201116"
 
 variables:
   CI: "true"
@@ -12,6 +12,8 @@ build:
   script:
     - pip install setuptools wheel
     - python setup.py bdist_wheel upload -r http://10.198.8.31:23290
+  tags:
+    - p4
   only:
     - master
     - build-dev
