@@ -9,6 +9,7 @@ stages:
 build:
   stage: build
   script:
+    - pip install --user setuptools
     - python setup.py bdist_wheel upload -r http://10.198.8.31:23290
   only:
     - master
