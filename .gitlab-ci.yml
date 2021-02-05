@@ -1,4 +1,5 @@
-image: "registry.sensetime.com/xlab/sensestar-docker:cuda92-centos7"
+# image: "registry.sensetime.com/xlab/sensestar-docker:cuda92-centos7"
+image: "registry.sensetime.com/spring/spring-devel:v0.2.0_cuda9.0_20201116"
 
 variables:
   CI: "true"
@@ -9,7 +10,6 @@ stages:
 build:
   stage: build
   script:
-    - export TORCH_CUDA_ARCH_LIST="7.5"
     - pip install setuptools wheel
     - python setup.py bdist_wheel upload -r http://10.198.8.31:23290
   only:
