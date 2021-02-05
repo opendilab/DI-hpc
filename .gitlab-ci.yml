@@ -1,4 +1,4 @@
-image: "registry.sensetime.com/xlab/sensestar-docker:cuda92-centos7"
+image: "registry.sensetime.com/xlab/sensestar-docker:cuda92-centos7-hpc"
 # image: "registry.sensetime.com/spring/spring-devel:v0.2.0_cuda9.0_20201116"
 
 
