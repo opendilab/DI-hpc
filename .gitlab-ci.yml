@@ -10,6 +10,7 @@ stages:
 build:
   stage: build
   script:
+    - which scl
     - scl enable devtoolset-8 bash
     - gcc --version
     - pip install setuptools==42.0.2 wheel==0.33.6
