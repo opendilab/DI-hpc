@@ -11,7 +11,7 @@ build:
   stage: build
   script:
     - pip install setuptools==42.0.2 wheel==0.33.6
-    - python setup.py bdist_wheel upload -r http://10.198.8.31:23290
+    - python3 setup.py bdist_wheel upload -r http://10.198.8.31:23290
   tags:
     - p4
   only:
