@@ -10,6 +10,7 @@ stages:
 build:
   stage: build
   script:
+    - gcc --version
     - pip install setuptools==42.0.2 wheel==0.33.6
     - python3 setup.py bdist_wheel upload -r http://10.198.8.31:23290
   tags:
