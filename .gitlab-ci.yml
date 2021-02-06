@@ -10,6 +10,7 @@ stages:
 build:
   stage: build
   script:
+    - ls /usr/bin
     - which scl
     - scl enable devtoolset-8 bash
     - gcc --version
