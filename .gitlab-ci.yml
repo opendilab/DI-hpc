@@ -1,5 +1,5 @@
 # image: "registry.sensetime.com/xlab/sensestar-docker:cuda92-centos7-hpc"
-image: "registry.sensetime.com/xlab/sensestar-docker:cuda92-centos7-hpc-py37"
+image: "registry.sensetime.com/xlab/sensestar-docker:cuda92-centos7-hpc-py37-2"
 
 variables:
   CI: "true"
