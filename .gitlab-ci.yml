@@ -1,0 +1,48 @@
+variables:
+  CI: "true"
+
+stages:
+  - build
+
+build36:
+  stage: build
+  image: "registry.sensetime.com/xlab/sensestar-docker:cuda92-centos7-hpc"
+  script:
+    - gcc --version
+    - python3 --version
+    - pip install setuptools==42.0.2 wheel==0.33.6
+    - python3 setup.py bdist_wheel upload -r http://10.198.8.31:23290
+  tags:
+    - p4
+  only:
+    - master
+    - build-dev
+
+build37:
+  stage: build
+  image: "registry.sensetime.com/xlab/sensestar-docker:cuda92-centos7-hpc-py37-2"
+  script:
+    - gcc --version
+    - python3 --version
+    - pip install setuptools==42.0.2 wheel==0.33.6
+    - python3 setup.py bdist_wheel upload -r http://10.198.8.31:23290
+  tags:
+    - p4
+  only:
+    - master
+    - build-dev
+
+build38:
+  stage: build
+  image: "registry.sensetime.com/xlab/sensestar-docker:cuda92-centos7-hpc-py38"
+  script:
+    - gcc --version
+    - python3 --version
+    - pip install setuptools==42.0.2 wheel==0.33.6
+    - python3 setup.py bdist_wheel upload -r http://10.198.8.31:23290
+  tags:
+    - p4
+  only:
+    - master
+    - build-dev
+
