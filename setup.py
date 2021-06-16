@@ -5,7 +5,7 @@ import glob
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension
 
 NAME = 'hpc_rll'
-VERSION = '0.0.1'
+VERSION = '0.0.2'
 AUTHOR = 'wangyingrui'
 EMAIL = 'wangyingrui@sensetime.com'
 DESC = 'GPU-Accelerated library for reinforcement learning, from HPC SenseTime'
@@ -38,6 +38,11 @@ setup(
             'src/torch_utils/network/lstm.cu',
             'src/torch_utils/network/scatter_connection.cu'
             ], include_dirs=['include']),
+        CUDAExtension('hpc_models', sources=[
+            'src/models/entry.cu',
+            'src/models/actor_critic.cu',
+            ], include_dirs=['include']),
+
         ],
     cmdclass={
         'build_ext': BuildExtension
