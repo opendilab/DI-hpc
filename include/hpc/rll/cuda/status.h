@@ -19,7 +19,8 @@ namespace cuda {
 static int checkCudaError(cudaError_t code, const char* expr, const char* file, int line, bool abort = true) {
     if (code) {
         fprintf(stderr, "CUDA error at %s:%d, code=%d (%s) in '%s'", file, line, (int) code, cudaGetErrorString(code), expr);
-        if (abort) exit(code);
+        if (abort)
+            throw std::logic_error("CUDA Error.");
     }
     return 0;
 }
@@ -45,7 +46,8 @@ static const char* cublasGetErrorString(cublasStatus_t status)
 static int checkCublasError(cublasStatus_t code, const char* expr, const char* file, int line, bool abort = true) {
     if (code) {
         fprintf(stderr, "CUBLAS error at %s:%d, code=%d (%s) in '%s'", file, line, (int) code, cublasGetErrorString(code), expr);
-        if (abort) exit(code);
+        if (abort)
+            throw std::logic_error("CUBLAS Error.");
     }
     return 0;
 }
@@ -76,7 +78,8 @@ static const char* curandGetErrorString(curandStatus_t status)
 static int checkCurandError(curandStatus_t code, const char* expr, const char* file, int line, bool abort = true) {
     if (code) {
         fprintf(stderr, "CURAND error at %s:%d, code=%d (%s) in '%s'", file, line, (int) code, curandGetErrorString(code), expr);
-        if (abort) exit(code);
+        if (abort)
+            throw std::logic_error("CURAND Error.");
     }
     return 0;
 }
