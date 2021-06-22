@@ -1,5 +1,6 @@
 import time
 import torch
+import numpy as np
 from testbase import mean_relative_error, times
 import hpc_models
 
@@ -8,57 +9,57 @@ use_cuda = True
 
 times = 100
 
-batch_size = 1
-entity_num = 182
+batch_size = 8
+max_entity_num = 182
 input_dim = 1024
 
 lstm_seq_len = 1
-lstm_batch_size = 1
+lstm_batch_size = 8
 lstm_input_size = 32
 lstm_hidden_size = 32
 lstm_num_layers = 1
 
 
-def torch_update_ae(autoregressive_embedding, key_embeddings, sample_result, entity_num, end_flag):
+def torch_update_ae(autoregressive_embedding, key_embeddings, sample_entity, max_entity_num, end_flag):
     bs = autoregressive_embedding.shape[0]
-    autoregressive_embedding = autoregressive_embedding + key_embeddings[torch.arange(bs), sample_result] * ~end_flag.unsqueeze(dim=1)
+    autoregressive_embedding = autoregressive_embedding + key_embeddings[torch.arange(bs), sample_entity] * ~end_flag.unsqueeze(dim=1)
     return autoregressive_embedding
-
-
-def hpc_update_ae(autoregressive_embedding, key_embeddings, sample_result, entity_num):
-    hpc_models.actor_critic_update_ae([key_embeddings, sample_result, entity_num], [autoregressive_embedding])
-    return autoregressive_embedding
-
 
 def actor_critic_update_ae_val():
     ori_ae = torch.randn(batch_size, input_dim)
-    ori_ke = torch.randn(batch_size, entity_num, input_dim)
-    ori_sample_result = torch.randint(0, entity_num, size=(1, ))
-    ori_true_entity_num = torch.randint(entity_num - 1, entity_num, size=(1, ))
+    ori_ke = torch.randn(batch_size, max_entity_num, input_dim)
+    ori_entity_num = torch.randint(max_entity_num - 2, max_entity_num, size=(batch_size, ))
+    ori_sample_entity = []
+    for i in range(batch_size):
+        entity_num = ori_entity_num[i]
+        ori_sample_entity.append(torch.randint(0, entity_num, size=(1, )))
+    ori_sample_entity = torch.stack(ori_sample_entity, dim=0).squeeze(1)
+    ori_end_flag = torch.zeros(batch_size).bool()
 
     hpc_ae = ori_ae.clone().detach()
     hpc_ke = ori_ke.clone().detach()
-    hpc_sample_result = ori_sample_result.clone().detach()
-    hpc_true_entity_num = ori_true_entity_num.clone().detach()
+    hpc_entity_num = ori_entity_num.clone().detach()
+    hpc_sample_entity = ori_sample_entity.clone().detach()
+    hpc_end_flag = ori_end_flag.clone().detach()
 
     if use_cuda:
         ori_ae = ori_ae.cuda()
         ori_ke = ori_ke.cuda()
-        ori_sample_result = ori_sample_result.cuda()
-        ori_true_entity_num = ori_true_entity_num.cuda()
+        ori_entity_num = ori_entity_num.cuda()
+        ori_sample_entity = ori_sample_entity.cuda()
+        ori_end_flag = ori_end_flag.cuda()
 
         hpc_ae = hpc_ae.cuda()
         hpc_ke = hpc_ke.cuda()
-        hpc_sample_result = hpc_sample_result.cuda()
-        hpc_true_entity_num = hpc_true_entity_num.cuda()
+        hpc_entity_num = hpc_entity_num.cuda()
+        hpc_sample_entity = hpc_sample_entity.cuda()
+        hpc_end_flag = hpc_end_flag.cuda()
 
-    bs = ori_ae.shape[0]
-    end_flag = torch.zeros(bs).cuda().bool()
-    end_flag[ori_sample_result == ori_true_entity_num] = 1
+    ori_end_flag[ori_sample_entity == ori_entity_num] = 1
+    ori_out = torch_update_ae(ori_ae, ori_ke, ori_sample_entity, ori_entity_num, ori_end_flag)
 
-    ori_out = torch_update_ae(ori_ae, ori_ke, ori_sample_result, ori_true_entity_num, end_flag)
-    #hpc_out = hpc_update_ae(ori_ae, ori_ke, ori_sample_result, ori_true_entity_num)
-    hpc_models.actor_critic_update_ae([hpc_ke, hpc_sample_result, hpc_true_entity_num], [hpc_ae])
+    hpc_end_flag[hpc_sample_entity == hpc_entity_num] = 1
+    hpc_models.actor_critic_update_ae([hpc_ke, hpc_sample_entity, hpc_entity_num], [hpc_ae])
     hpc_out = hpc_ae
     if use_cuda:
         torch.cuda.synchronize()
@@ -70,47 +71,47 @@ def actor_critic_update_ae_val():
 
 def actor_critic_update_ae_perf():
     ori_ae = torch.randn(batch_size, input_dim)
-    ori_ke = torch.randn(batch_size, entity_num, input_dim)
-    ori_sample_result = torch.randint(0, entity_num, size=(1, ))
-    ori_true_entity_num = torch.randint(entity_num - 1, entity_num, size=(1, ))
+    ori_ke = torch.randn(batch_size, max_entity_num, input_dim)
+    ori_entity_num = torch.randint(max_entity_num - 2, max_entity_num, size=(batch_size, ))
+    ori_sample_entity = []
+    for i in range(batch_size):
+        entity_num = ori_entity_num[i]
+        ori_sample_entity.append(torch.randint(0, entity_num, size=(1, )))
+    ori_sample_entity = torch.stack(ori_sample_entity, dim=0).squeeze(1)
+    ori_end_flag = torch.zeros(batch_size).bool()
 
     hpc_ae = ori_ae.clone().detach()
     hpc_ke = ori_ke.clone().detach()
-    hpc_sample_result = ori_sample_result.clone().detach()
-    hpc_true_entity_num = ori_true_entity_num.clone().detach()
+    hpc_entity_num = ori_entity_num.clone().detach()
+    hpc_sample_entity = ori_sample_entity.clone().detach()
+    hpc_end_flag = ori_end_flag.clone().detach()
 
     if use_cuda:
         ori_ae = ori_ae.cuda()
         ori_ke = ori_ke.cuda()
-        ori_sample_result = ori_sample_result.cuda()
-        ori_true_entity_num = ori_true_entity_num.cuda()
+        ori_entity_num = ori_entity_num.cuda()
+        ori_sample_entity = ori_sample_entity.cuda()
+        ori_end_flag = ori_end_flag.cuda()
 
         hpc_ae = hpc_ae.cuda()
         hpc_ke = hpc_ke.cuda()
-        hpc_sample_result = hpc_sample_result.cuda()
-        hpc_true_entity_num = hpc_true_entity_num.cuda()
-
-    bs = ori_ae.shape[0]
-    end_flag = torch.zeros(bs).cuda().bool()
-    end_flag[ori_sample_result == ori_true_entity_num] = 1
-
-    ori_out = torch_update_ae(ori_ae, ori_ke, ori_sample_result, ori_true_entity_num, end_flag)
-    hpc_out = hpc_update_ae(ori_ae, ori_ke, ori_sample_result, ori_true_entity_num)
-    if use_cuda:
-        torch.cuda.synchronize()
-
+        hpc_entity_num = hpc_entity_num.cuda()
+        hpc_sample_entity = hpc_sample_entity.cuda()
+        hpc_end_flag = hpc_end_flag.cuda()
+ 
     t = time.time()
     for i in range(times):
-        ori_out = torch_update_ae(ori_ae, ori_ke, ori_sample_result, ori_true_entity_num, end_flag)
-        #ori_ae = ori_ae + ori_ke[torch.arange(bs), ori_sample_result] * ~end_flag.unsqueeze(dim=1)
+        ori_end_flag[ori_sample_entity == ori_entity_num] = 1
+        ori_out = torch_update_ae(ori_ae, ori_ke, ori_sample_entity, ori_entity_num, ori_end_flag)
     if use_cuda:
         torch.cuda.synchronize()
     print('original update ae cost time: {}'.format(time.time() - t))
-
+ 
     t = time.time()
     for i in range(times):
-        hpc_out = hpc_update_ae(hpc_ae, hpc_ke, hpc_sample_result, hpc_true_entity_num)
-        #hpc_models.actor_critic_update_ae([hpc_ke, hpc_sample_result, hpc_true_entity_num], [hpc_ae])
+        hpc_end_flag[hpc_sample_entity == hpc_entity_num] = 1
+        hpc_models.actor_critic_update_ae([hpc_ke, hpc_sample_entity, hpc_entity_num], [hpc_ae])
+        hpc_out = hpc_ae
     if use_cuda:
         torch.cuda.synchronize()
     print('hpc update ae cost time: {}'.format(time.time() - t))
@@ -213,17 +214,41 @@ def actor_critic_lstm_activation_perf():
 
 def actor_critic_pre_sample_val():
     ori_x = torch.randn(lstm_seq_len, lstm_batch_size, lstm_hidden_size)
-    ori_key = torch.randn(lstm_batch_size, entity_num, lstm_hidden_size)
-    ori_mask = torch.randint(0, 2, size=(entity_num, ))
+    ori_key = torch.randn(lstm_batch_size, max_entity_num, lstm_hidden_size)
+    ori_mask = torch.zeros(lstm_batch_size, max_entity_num)
+
+    ori_entity_num = torch.randint(max_entity_num - 2, max_entity_num, size=(lstm_batch_size, ))
+    ori_sample_entity = []
+    ori_mask = []
+    for i in range(lstm_batch_size):
+        entity_num = ori_entity_num[i]
+        sample_entity = torch.randint(0, entity_num, size=(1, ))
+        ori_sample_entity.append(torch.randint(0, entity_num, size=(1, )))
+
+        mask = []
+        for j in range(max_entity_num):
+            if j < entity_num:
+                mask.append(torch.ones(size=(1, )))
+            else:
+                mask.append(torch.zeros(size=(1, )))
+        mask = torch.stack(mask, dim=0).squeeze(1)
+        ori_mask.append(mask)
+
+    ori_sample_entity = torch.stack(ori_sample_entity, dim=0).squeeze(1)
+    ori_mask = torch.stack(ori_mask, dim=0)
+
+    ori_mask[torch.arange(lstm_batch_size), ori_sample_entity] = 0
+
     hpc_x = ori_x.clone().detach()
     hpc_key = ori_key.clone().detach()
     hpc_mask = ori_mask.clone().detach()
-    hpc_out = torch.zeros(lstm_batch_size, entity_num)
+    hpc_out = torch.zeros(lstm_batch_size, max_entity_num)
 
     if use_cuda:
         ori_x = ori_x.cuda()
         ori_key = ori_key.cuda()
         ori_mask = ori_mask.cuda()
+
         hpc_x = hpc_x.cuda()
         hpc_key = hpc_key.cuda()
         hpc_mask = hpc_mask.cuda()
@@ -231,7 +256,6 @@ def actor_critic_pre_sample_val():
 
     ori_mask = ori_mask.bool()
     hpc_mask = hpc_mask.bool()
-    #print("ori_mask: " + str(ori_mask))
 
     ori_queries = ori_x.permute(1, 0, 2)
     ori_query_result = ori_queries * ori_key
@@ -246,21 +270,46 @@ def actor_critic_pre_sample_val():
 
     mre = mean_relative_error(torch.flatten(ori_out).cpu().detach().numpy(), torch.flatten(hpc_out).cpu().detach().numpy())
     print("actor critic pre sample mean_relative_error: " + str(mre))
+    assert np.allclose(ori_out.detach().cpu().numpy(), hpc_out.detach().cpu().numpy(), rtol=1e-5, atol=1e-5)
 
 
 def actor_critic_pre_sample_perf():
     ori_x = torch.randn(lstm_seq_len, lstm_batch_size, lstm_hidden_size)
-    ori_key = torch.randn(lstm_batch_size, entity_num, lstm_hidden_size)
-    ori_mask = torch.randint(0, 2, size=(entity_num, ))
+    ori_key = torch.randn(lstm_batch_size, max_entity_num, lstm_hidden_size)
+    ori_mask = torch.zeros(lstm_batch_size, max_entity_num)
+
+    ori_entity_num = torch.randint(max_entity_num - 2, max_entity_num, size=(lstm_batch_size, ))
+    ori_sample_entity = []
+    ori_mask = []
+    for i in range(lstm_batch_size):
+        entity_num = ori_entity_num[i]
+        sample_entity = torch.randint(0, entity_num, size=(1, ))
+        ori_sample_entity.append(torch.randint(0, entity_num, size=(1, )))
+
+        mask = []
+        for j in range(max_entity_num):
+            if j < entity_num:
+                mask.append(torch.ones(size=(1, )))
+            else:
+                mask.append(torch.zeros(size=(1, )))
+        mask = torch.stack(mask, dim=0).squeeze(1)
+        ori_mask.append(mask)
+
+    ori_sample_entity = torch.stack(ori_sample_entity, dim=0).squeeze(1)
+    ori_mask = torch.stack(ori_mask, dim=0)
+
+    ori_mask[torch.arange(lstm_batch_size), ori_sample_entity] = 0
+
     hpc_x = ori_x.clone().detach()
     hpc_key = ori_key.clone().detach()
     hpc_mask = ori_mask.clone().detach()
-    hpc_out = torch.zeros(lstm_batch_size, entity_num)
+    hpc_out = torch.zeros(lstm_batch_size, max_entity_num)
 
     if use_cuda:
         ori_x = ori_x.cuda()
         ori_key = ori_key.cuda()
         ori_mask = ori_mask.cuda()
+
         hpc_x = hpc_x.cuda()
         hpc_key = hpc_key.cuda()
         hpc_mask = hpc_mask.cuda()
@@ -268,8 +317,7 @@ def actor_critic_pre_sample_perf():
 
     ori_mask = ori_mask.bool()
     hpc_mask = hpc_mask.bool()
-    #print("ori_mask: " + str(ori_mask))
- 
+
     t = time.time()
     for i in range(times):
         ori_queries = ori_x.permute(1, 0, 2)
@@ -291,7 +339,7 @@ def actor_critic_pre_sample_perf():
 
 
 if __name__ == '__main__':
-    print("target problem: batch_size = {}, entity_num = {}, input_dim = {}".format(batch_size, entity_num, input_dim))
+    print("target problem: batch_size = {}, max_entity_num = {}, input_dim = {}".format(batch_size, max_entity_num, input_dim))
     print("================run actor critic update ae validation test================")
     actor_critic_update_ae_val()
     print("================run actor critic update ae performance test================")
@@ -306,8 +354,8 @@ if __name__ == '__main__':
     actor_critic_lstm_activation_perf()
     print("\n")
 
-    print("target problem: lstm_batch_size = {}, lstm_seq_len = {}, lstm_hidden_size = {}, entity_num = {}".format(
-        lstm_batch_size, lstm_seq_len, lstm_hidden_size, entity_num))
+    print("target problem: lstm_batch_size = {}, lstm_seq_len = {}, lstm_hidden_size = {}, max_entity_num = {}".format(
+        lstm_batch_size, lstm_seq_len, lstm_hidden_size, max_entity_num))
     print("================run actor critic pre sample validation test================")
     actor_critic_pre_sample_val()
     print("================run actor critic pre sample performance test================")
