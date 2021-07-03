@@ -89,12 +89,14 @@ void LstmForward(
     }
 
     // TODO pay attention to wx shape change
-    unsigned int wxidx[num_layers];
+    // unsigned int wxidx[num_layers];
+    unsigned int wxidx[100];
     wxidx[0] = input_size;
     for (int l = 0; l < num_layers - 1; l++) {
         wxidx[l + 1] = hidden_size;
     }
-    unsigned int wxoffset[num_layers];
+    // unsigned int wxoffset[num_layers];
+    unsigned int wxoffset[100];
     wxoffset[0] = 0;
     for (int l = 0; l < num_layers - 1; l++) {
         wxoffset[l + 1] = wxoffset[l] + wxidx[l] * wxidx[l + 1] * 4;
@@ -257,12 +259,14 @@ void LstmBackward(
     checkCublasErr(cublasCreate(&cublas_handle));
 
     // TODO pay attention to wx shape change
-    unsigned int wxidx[num_layers + 1];
+    // unsigned int wxidx[num_layers + 1];
+    unsigned int wxidx[100 + 1];
     wxidx[0] = input_size;
     for (int l = 0; l < num_layers; l++) {
         wxidx[l + 1] = hidden_size;
     }
-    unsigned int wxoffset[num_layers + 1];
+    // unsigned int wxoffset[num_layers + 1];
+    unsigned int wxoffset[100 + 1];
     wxoffset[0] = 0;
     unsigned int totalwx = 0;
     for (int l = 0; l < num_layers; l++) {

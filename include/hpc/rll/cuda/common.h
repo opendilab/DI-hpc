@@ -20,7 +20,8 @@ namespace cuda {
 }
 
 static void print_tensor(const char* tensor_name, float* ptr, int len) {
-    float hostbuf[len];
+    // float hostbuf[len];
+    float hostbuf[100];
     checkCudaErr(cudaMemcpy(hostbuf, ptr, len * sizeof(float), cudaMemcpyDeviceToHost));
 
     fprintf(stderr, "%s\n", tensor_name);
@@ -29,7 +30,8 @@ static void print_tensor(const char* tensor_name, float* ptr, int len) {
 }
 
 static void save_tensor(const char* tensor_name, float* ptr, int len) {
-    float hostbuf[len];
+    // float hostbuf[len];
+    float hostbuf[100];
     checkCudaErr(cudaMemcpy(hostbuf, ptr, len * sizeof(float), cudaMemcpyDeviceToHost));
 
     char filename[256];
@@ -41,13 +43,13 @@ static void save_tensor(const char* tensor_name, float* ptr, int len) {
     outfile.close();
 }
 
-const unsigned int DEFAULT_WARP_NUM = 8;
-const unsigned int WARP_SIZE = 32;
-const float CUDA_FLOAT_INF_POS = FLT_MAX;
-const float CUDA_FLOAT_INF_NEG = -FLT_MAX;
+__device__ const unsigned int DEFAULT_WARP_NUM = 8;
+__device__ const unsigned int WARP_SIZE = 32;
+__device__ const float CUDA_FLOAT_INF_POS = FLT_MAX;
+__device__ const float CUDA_FLOAT_INF_NEG = -FLT_MAX;
 
 // torch.finfo(torch.float32).eps say epsilon = 1.19209e-07, but pytorch layernorm userguide say epsilon = 1e-5
-const float EPSILON = 1e-5;
+__device__ const float EPSILON = 1e-5;
 
 }  // namespace cuda
 }  // namespace rll

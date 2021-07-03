@@ -32,16 +32,20 @@ setup(
             'src/rl_utils/td_lambda.cu',
             'src/rl_utils/upgo.cu',
             'src/rl_utils/vtrace.cu',
-            ], include_dirs=['include']),
+            ], include_dirs=[os.path.join(os.getcwd(), 'include')],
+            library_dirs=['C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.2/lib/x64'],
+            libraries=['cublas']),
         CUDAExtension('hpc_torch_utils_network', sources=[
             'src/torch_utils/network/entry.cu',
             'src/torch_utils/network/lstm.cu',
             'src/torch_utils/network/scatter_connection.cu'
-            ], include_dirs=['include']),
+            ], include_dirs=[os.path.join(os.getcwd(), 'include')],
+            library_dirs=['C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v10.2/lib/x64'],
+            libraries=['cublas', 'curand']),
         CUDAExtension('hpc_models', sources=[
             'src/models/entry.cu',
             'src/models/actor_critic.cu',
-            ], include_dirs=['include']),
+            ], include_dirs=[os.path.join(os.getcwd(), 'include')]),
 
         ],
     cmdclass={
