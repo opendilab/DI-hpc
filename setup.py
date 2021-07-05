@@ -4,10 +4,8 @@ import os
 import glob
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension
 
-NAME = 'hpc_rll'
-VERSION = '0.0.2'
-AUTHOR = 'wangyingrui'
-EMAIL = 'wangyingrui@sensetime.com'
+NAME = 'di_hpc_rll'
+VERSION = '0.0.1'
 DESC = 'GPU-Accelerated library for reinforcement learning, from HPC SenseTime'
 PLATFORMS = 'linux-x86_64'
 PACKAGES = ['hpc_rll', 'hpc_rll.origin', 'hpc_rll.rl_utils', 'hpc_rll.torch_utils', 'hpc_rll.torch_utils.network']
@@ -15,8 +13,6 @@ PACKAGES = ['hpc_rll', 'hpc_rll.origin', 'hpc_rll.rl_utils', 'hpc_rll.torch_util
 setup(
     name = NAME,
     version = VERSION,
-    author = AUTHOR,
-    author_email = EMAIL,
     description = DESC,
     platforms = PLATFORMS,
     packages = PACKAGES,
