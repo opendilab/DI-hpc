@@ -17,15 +17,20 @@ void __global__ upgoAdvantageKernel(unsigned int time_step, unsigned int batch_s
         for (int t = time_step - 1; t >= 0; --t) {
             unsigned int index = t * batch_size + gid;
 
-            float reward_data = reward[index];
             float rho_data = rho[index];
+
+            float reward_data0 = reward[index];
+            // Note: when t == time_step - 1, reward_data1 is not used. Just avoid accessing out of memory bound.
+            float reward_data1 = (t == time_step - 1) ? 0.f : reward[index + batch_size];
 
             float value0 = value[index];
             float value1 = value[index + batch_size];
+            // Note: when t == time_step - 1, value2 is not used. Just avoid accessing out of memory bound.
             float value2 = (t == time_step - 1) ? 0.f : value[index + batch_size * 2];
 
-            float value_data = ((t < time_step - 1) && (reward_data + value2 >= value1)) ? item : value1;
-            float rt = reward_data + value_data;
+            float value_data = ((t < time_step - 1) && (reward_data1 + value2 >= value1)) ? item : value1;
+
+            float rt = reward_data0 + value_data;
             advantage[index] = (rt - value0) * rho_data;
             item = rt;
         }
@@ -69,9 +74,9 @@ void __global__ crossEntropyKernel(unsigned int num,
         float softmax_data = std::exp(input[i] - s_max_x) / s_sum_exp_x;
 
         if (flag)
-            output[blockIdx.x] = -std::log(softmax_data);
+            output[blockIdx.x] = std::log(softmax_data);
 
-        grad[i] = flag ? (softmax_data - 1) : softmax_data;
+        grad[i] = flag ? (1 - softmax_data) : (-softmax_data);
     }
 }
 
