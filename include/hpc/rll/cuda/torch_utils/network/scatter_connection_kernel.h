@@ -37,7 +37,8 @@ void __global__ scatterConnectionCoverKeepSeqForwardKernel(unsigned int B, unsig
     }
 
     // reduce max idx
-    int reduced_max_id = blockReduceMax<int>(max_id);
+    float max_id_fp = max_id;
+    int reduced_max_id = __float2int_rn(blockReduceMax<float>(max_id_fp));
     static __shared__ int s_max_id;
     if (lid == 0) {
         s_max_id = reduced_max_id;
