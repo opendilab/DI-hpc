@@ -12,9 +12,9 @@
 ## Quick Start
 #### Install from whl
 The easiest way to get DI-HPC is to use pip, and you can get `.whl` from
-* [di_hpc_rll-0.0.1-cp36-cp36m-linux_x86_64.whl](http://opendilab.org/download/DI-hpc/di_hpc_rll-0.0.1-cp36-cp36m-linux_x86_64.whl)
-* [di_hpc_rll-0.0.1-cp37-cp37m-linux_x86_64.whl](http://opendilab.org/download/DI-hpc/di_hpc_rll-0.0.1-cp37-cp37m-linux_x86_64.whl)
-* [di_hpc_rll-0.0.1-cp38-cp38-linux_x86_64.whl](http://opendilab.org/download/DI-hpc/di_hpc_rll-0.0.1-cp38-cp38-linux_x86_64.whl)
+* [di_hpc_rll-0.0.2-cp36-cp36m-linux_x86_64.whl](http://opendilab.org/download/DI-hpc/di_hpc_rll-0.0.2-cp36-cp36m-linux_x86_64.whl)
+* [di_hpc_rll-0.0.2-cp37-cp37m-linux_x86_64.whl](http://opendilab.org/download/DI-hpc/di_hpc_rll-0.0.2-cp37-cp37m-linux_x86_64.whl)
+* [di_hpc_rll-0.0.2-cp38-cp38-linux_x86_64.whl](http://opendilab.org/download/DI-hpc/di_hpc_rll-0.0.2-cp38-cp38-linux_x86_64.whl)
 
 and then call
 ```
