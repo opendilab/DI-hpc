@@ -1,5 +1,6 @@
 import torch
 import hpc_rl_utils
+from typing import Optional
 
 # hpc version only support cuda
 
@@ -368,4 +369,225 @@ class QNStepTDRescale(torch.nn.Module):
                 self.td_error_per_sample, self.loss, self.grad_buf, self.grad_q)
 
         return loss, td_err
+
+
+class IQNNStepTDErrorFunction(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, q, next_n_q, action, next_n_action, reward, done, replay_quantiles, weight, value_gamma, gamma, kappa,
+            loss, td_err_per_sample, bellman_err_buf, quantile_huber_loss_buf, grad_buf, grad_q):
+        inputs = [q, next_n_q, action, next_n_action, reward, done, replay_quantiles, weight, value_gamma]
+        outputs = [loss, td_err_per_sample, bellman_err_buf, quantile_huber_loss_buf, grad_buf]
+        hpc_rl_utils.IQNNStepTDErrorForward(inputs, outputs, gamma, kappa)
+
+        ctx.bp_inputs = [grad_buf, weight, action]
+        ctx.bp_outputs = [grad_q]
+
+        return loss, td_err_per_sample
+
+    @staticmethod
+    def backward(ctx, grad_loss, grad_td_err_per_sample):
+        inputs = [grad_loss]
+        for var in ctx.bp_inputs:
+            inputs.append(var)
+        outputs = ctx.bp_outputs
+
+        hpc_rl_utils.IQNNStepTDErrorBackward(inputs, outputs)
+        grad_q = outputs[0]
+        return grad_q, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None
+
+
+class IQNNStepTDError(torch.nn.Module):
+
+    """
+    Overview:
+        Multistep (1 step or n step) td_error with in IQN, \
+                referenced paper Implicit Quantile Networks for Distributional Reinforcement Learning \
+                <https://arxiv.org/pdf/1806.06923.pdf>
+   Interface:
+        __init__, forward
+    """
+
+    def __init__(self, tau, tauPrime, T, B, N):
+        r"""
+        Overview
+            initialization of iqn_nstep_td_error
+
+        Arguments:
+            - tau (:obj:`int`): num of quantiles
+            - tauPrime (:obj:`int`): num of quantiles
+            - T (:obj:`int`): trajectory length
+            - B (:obj:`int`): batch size
+            - N (:obj:`int`): action dim
+            - gamma (:obj:`float`): discount factor
+        """
+
+        super().__init__()
+        self.tau = tau
+        self.tauPrime = tauPrime
+        self.T = T
+        self.B = B
+        self.N = N
+        self.register_buffer('weight', torch.ones(B))
+        self.register_buffer('td_error_per_sample', torch.zeros(B))
+        self.register_buffer('loss', torch.zeros(1))
+        self.register_buffer('value_gamma', torch.zeros(B))
+        self.register_buffer('bellman_err_buf', torch.zeros(B, tauPrime, tau))
+        self.register_buffer('quantile_huber_loss_buf', torch.zeros(B, tauPrime, tau))
+        self.register_buffer('grad_buf', torch.zeros(B, tauPrime, tau))
+        self.register_buffer('grad_q', torch.zeros(tau, B, N))
+
+    def forward(self, q, next_n_q, action, next_n_action, reward, done, replay_quantiles,
+            gamma: float, kappa: float = 1.0,
+            weight: Optional[torch.Tensor] = None,
+            value_gamma: Optional[torch.Tensor] = None,
+            ) -> torch.Tensor:
+        """
+        Overview:
+            forward of iqn_nstep_td_error
+        Arguments:
+            - q (:obj:`torch.FloatTensor`): :math:`(tau, B, N)` i.e. [tau x batch_size, action_dim]
+            - next_n_q (:obj:`torch.FloatTensor`): :math:`(tau, B, N)`
+            - action (:obj:`torch.LongTensor`): :math:`(B, )`
+            - next_n_action (:obj:`torch.LongTensor`): :math:`(B, )`
+            - reward (:obj:`torch.FloatTensor`): :math:`(T, B)`, where T is timestep(nstep
+            - done (:obj:`torch.BoolTensor`) :math:`(B, )`, whether done in last timestep
+            - replay_quantiles (:obj:`torch.FloatTensor`): :math:`(B)`
+            - gamma (:obj:`float`): discount factor
+            - kappa (:obj:`float`)
+            - weight (:obj:`torch.FloatTensor` or None): :math:`(B, )`, the training sample weight
+            - value_gamma (:obj:`torch.FloatTensor`): :math:`(B)`
+        Returns:
+            - loss (:obj:`torch.Tensor`): nstep td error, 0-dim tensor
+            - td_error_per_sample (:obj:`torch.Tensor`): :math:`(B, )`, iqn nstep td error per sample
+        """
+
+        assert(q.is_cuda)
+        assert(next_n_q.is_cuda)
+        assert(action.is_cuda)
+        assert(next_n_action.is_cuda)
+        assert(reward.is_cuda)
+        assert(done.is_cuda)
+        assert(replay_quantiles.is_cuda)
+        if weight is None:
+            weight = self.weight
+        else:
+            assert(weight.is_cuda)
+        if value_gamma is None:
+            self.value_gamma.fill_(gamma ** self.T)
+            value_gamma = self.value_gamma
+        else:
+            assert(value_gamma.is_cuda)
+
+        loss, td_err_per_sample = IQNNStepTDErrorFunction.apply(q, next_n_q, action, next_n_action,
+                reward, done, replay_quantiles, weight, value_gamma, gamma, kappa,
+                self.loss, self.td_error_per_sample, self.bellman_err_buf, self.quantile_huber_loss_buf, self.grad_buf, self.grad_q)
+
+        return loss, td_err_per_sample
+
+
+class QRDQNNStepTDErrorFunction(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, q, next_n_q, action, next_n_action, reward, done, weight, value_gamma, gamma,
+            loss, td_err_per_sample, bellman_err_buf, quantile_huber_loss_buf, grad_buf, grad_q):
+        inputs = [q, next_n_q, action, next_n_action, reward, done, weight, value_gamma]
+        outputs = [loss, td_err_per_sample, bellman_err_buf, quantile_huber_loss_buf, grad_buf]
+        hpc_rl_utils.QRDQNNStepTDErrorForward(inputs, outputs, gamma)
+
+        ctx.bp_inputs = [grad_buf, weight, action]
+        ctx.bp_outputs = [grad_q]
+
+        return loss, td_err_per_sample
+
+    @staticmethod
+    def backward(ctx, grad_loss, grad_td_err_per_sample):
+        inputs = [grad_loss]
+        for var in ctx.bp_inputs:
+            inputs.append(var)
+        outputs = ctx.bp_outputs
+
+        hpc_rl_utils.QRDQNNStepTDErrorBackward(inputs, outputs)
+        grad_q = outputs[0]
+        return grad_q, None, None, None, None, None, None, None, None, None, None, None, None, None, None
+
+
+class QRDQNNStepTDError(torch.nn.Module):
+
+    """
+    Overview:
+        Multistep (1 step or n step) td_error with in QRDQN
+   Interface:
+        __init__, forward
+    """
+
+    def __init__(self, tau, T, B, N):
+        r"""
+        Overview
+            initialization of qrdqn_nstep_td_error
+
+        Arguments:
+            - tau (:obj:`int`): num of quantiles
+            - T (:obj:`int`): trajectory length
+            - B (:obj:`int`): batch size
+            - N (:obj:`int`): action dim
+            - gamma (:obj:`float`): discount factor
+        """
+
+        super().__init__()
+        self.tau = tau
+        self.T = T
+        self.B = B
+        self.N = N
+        self.register_buffer('weight', torch.ones(B))
+        self.register_buffer('td_error_per_sample', torch.zeros(B))
+        self.register_buffer('loss', torch.zeros(1))
+        self.register_buffer('value_gamma', torch.zeros(B))
+        self.register_buffer('bellman_err_buf', torch.zeros(B, tau, tau))
+        self.register_buffer('quantile_huber_loss_buf', torch.zeros(B, tau, tau))
+        self.register_buffer('grad_buf', torch.zeros(B, tau))
+        self.register_buffer('grad_q', torch.zeros(B, N, tau))
+
+    def forward(self, q, next_n_q, action, next_n_action, reward, done,
+            gamma: float,
+            weight: Optional[torch.Tensor] = None,
+            value_gamma: Optional[torch.Tensor] = None,
+            ) -> torch.Tensor:
+        """
+        Overview:
+            forward of qrdqn_nstep_td_error
+        Arguments:
+            - q (:obj:`torch.FloatTensor`): :math:`(B, N, tau)` i.e. [batch_size, action_dim, tau]
+            - next_n_q (:obj:`torch.FloatTensor`): :math:`(B, N, tau)`
+            - action (:obj:`torch.LongTensor`): :math:`(B, )`
+            - next_n_action (:obj:`torch.LongTensor`): :math:`(B, )`
+            - reward (:obj:`torch.FloatTensor`): :math:`(T, B)`, where T is timestep(nstep)
+            - done (:obj:`torch.BoolTensor`) :math:`(B, )`, whether done in last timestep
+            - gamma (:obj:`float`): discount factor
+            - weight (:obj:`torch.FloatTensor` or None): :math:`(B, )`, the training sample weight
+            - value_gamma (:obj:`torch.FloatTensor`): :math:`(B)`
+        Returns:
+            - loss (:obj:`torch.Tensor`): nstep td error, 0-dim tensor
+            - td_error_per_sample (:obj:`torch.Tensor`): :math:`(B, )`, qrdqn nstep td error per sample
+        """
+
+        assert(q.is_cuda)
+        assert(next_n_q.is_cuda)
+        assert(action.is_cuda)
+        assert(next_n_action.is_cuda)
+        assert(reward.is_cuda)
+        assert(done.is_cuda)
+        if weight is None:
+            weight = self.weight
+        else:
+            assert(weight.is_cuda)
+        if value_gamma is None:
+            self.value_gamma.fill_(gamma ** self.T)
+            value_gamma = self.value_gamma
+        else:
+            assert(value_gamma.is_cuda)
+
+        loss, td_err_per_sample = QRDQNNStepTDErrorFunction.apply(q, next_n_q, action, next_n_action,
+                reward, done, weight, value_gamma, gamma,
+                self.loss, self.td_error_per_sample, self.bellman_err_buf, self.quantile_huber_loss_buf, self.grad_buf, self.grad_q)
+
+        return loss, td_err_per_sample
 

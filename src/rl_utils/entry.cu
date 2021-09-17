@@ -20,6 +20,10 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     m.def("UpgoBackward", &UpgoBackward, "upgo backward (CUDA)");
     m.def("VTraceForward", &VTraceForward, "vtrace forward (CUDA)");
     m.def("VTraceBackward", &VTraceBackward, "vtrace backward (CUDA)");
+    m.def("IQNNStepTDErrorForward", &IQNNStepTDErrorForward, "iqn_nstep_td_error forward (CUDA)");
+    m.def("IQNNStepTDErrorBackward", &IQNNStepTDErrorBackward, "iqn_nstep_td_error backward (CUDA)");
+    m.def("QRDQNNStepTDErrorForward", &QRDQNNStepTDErrorForward, "qrdqn_nstep_td_error forward (CUDA)");
+    m.def("QRDQNNStepTDErrorBackward", &QRDQNNStepTDErrorBackward, "qrdqn_nstep_td_error backward (CUDA)");
 }
 
 }  // namespace cuda
