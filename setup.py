@@ -5,7 +5,7 @@ import glob
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension
 
 NAME = 'di_hpc_rll'
-VERSION = '0.0.1'
+VERSION = '0.0.2'
 DESC = 'GPU-Accelerated library for reinforcement learning'
 PLATFORMS = 'linux-x86_64'
 PACKAGES = ['hpc_rll', 'hpc_rll.origin', 'hpc_rll.rl_utils', 'hpc_rll.torch_utils', 'hpc_rll.torch_utils.network']
@@ -28,6 +28,8 @@ setup(
             'src/rl_utils/td_lambda.cu',
             'src/rl_utils/upgo.cu',
             'src/rl_utils/vtrace.cu',
+            'src/rl_utils/iqn_nstep_td_error.cu',
+            'src/rl_utils/qrdqn_nstep_td_error.cu',
             ], include_dirs=['include']),
         CUDAExtension('hpc_torch_utils_network', sources=[
             'src/torch_utils/network/entry.cu',

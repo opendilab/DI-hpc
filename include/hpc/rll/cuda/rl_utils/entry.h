@@ -92,6 +92,27 @@ void PPOBackward(
     const std::vector<torch::Tensor>& inputs,
     std::vector<torch::Tensor>& outputs);
 
+// iqn_nstep_td_error
+void IQNNStepTDErrorForward(
+    const std::vector<torch::Tensor>& inputs,
+    std::vector<torch::Tensor>& outputs,
+    float gamma,
+    float kappa);
+
+void IQNNStepTDErrorBackward(
+    const std::vector<torch::Tensor>& inputs,
+    std::vector<torch::Tensor>& outputs);
+
+// qrdqn_nstep_td_error
+void QRDQNNStepTDErrorForward(
+    const std::vector<torch::Tensor>& inputs,
+    std::vector<torch::Tensor>& outputs,
+    float gamma);
+
+void QRDQNNStepTDErrorBackward(
+    const std::vector<torch::Tensor>& inputs,
+    std::vector<torch::Tensor>& outputs);
+
 }  // namespace cuda
 }  // namespace rll
 }  // namespace hpc
