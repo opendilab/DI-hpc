@@ -36,9 +36,9 @@ void VTraceForward(
     torch::Tensor& value_loss = outputs[index++];
     torch::Tensor& entropy_loss = outputs[index++];
 
-    checkCudaErr(cudaMemsetAsync(pg_loss.data_ptr<float>(), 0, sizeof(float)));
-    checkCudaErr(cudaMemsetAsync(value_loss.data_ptr<float>(), 0, sizeof(float)));
-    checkCudaErr(cudaMemsetAsync(entropy_loss.data_ptr<float>(), 0, sizeof(float)));
+    checkCudaErr(cudaMemsetAsync((float*)(pg_loss.data_ptr()), 0, sizeof(float)));
+    checkCudaErr(cudaMemsetAsync((float*)(value_loss.data_ptr()), 0, sizeof(float)));
+    checkCudaErr(cudaMemsetAsync((float*)(entropy_loss.data_ptr()), 0, sizeof(float)));
 
     const unsigned int time_step = target_output.size(0);
     const unsigned int batch_size = target_output.size(1);
@@ -46,41 +46,42 @@ void VTraceForward(
     {
         unsigned int block_size = DEFAULT_WARP_NUM * WARP_SIZE;
         unsigned int grid_size = time_step * batch_size;
-        categoricalTarget<<<grid_size, block_size>>>(
-                num_output, target_output.data_ptr<float>(), action.data_ptr<int64_t>(),
-                target_output_prob.data_ptr<float>(), target_output_entropy.data_ptr<float>(),
-                target_output_grad_logits.data_ptr<float>(), target_output_grad_prob.data_ptr<float>(),
-                target_output_grad_entropy.data_ptr<float>());
-        categoricalBehaviour<<<grid_size, block_size>>>(
-                num_output, behaviour_output.data_ptr<float>(), action.data_ptr<int64_t>(), behaviour_output_prob.data_ptr<float>());
+        categoricalTarget<<<grid_size, block_size>>>(num_output,
+                (float*)(target_output.data_ptr()), (int64_t*)(action.data_ptr()),
+                (float*)(target_output_prob.data_ptr()), (float*)(target_output_entropy.data_ptr()),
+                (float*)(target_output_grad_logits.data_ptr()), (float*)(target_output_grad_prob.data_ptr()),
+                (float*)(target_output_grad_entropy.data_ptr()));
+        categoricalBehaviour<<<grid_size, block_size>>>(num_output,
+                (float*)(behaviour_output.data_ptr()), (int64_t*)(action.data_ptr()), (float*)(behaviour_output_prob.data_ptr()));
     }
     {
         unsigned int block_size = DEFAULT_WARP_NUM * WARP_SIZE;
         unsigned int grid_size = (time_step * batch_size + block_size - 1) / block_size;
-        computeImportanceWeights<<<grid_size, block_size>>>(
-                time_step, batch_size, target_output_prob.data_ptr<float>(), behaviour_output_prob.data_ptr<float>(), is.data_ptr<float>());
+        computeImportanceWeights<<<grid_size, block_size>>>(time_step, batch_size,
+                (float*)(target_output_prob.data_ptr()), (float*)(behaviour_output_prob.data_ptr()), (float*)(is.data_ptr()));
     }
     {
         unsigned int block_size = DEFAULT_WARP_NUM * WARP_SIZE;
         unsigned int grid_size = (batch_size + block_size - 1) / block_size;
         vtraceNStepReturn<<<grid_size, block_size>>>(
                 time_step, batch_size, gamma, lambda, rho_clip_ratio, c_clip_ratio, 
-                is.data_ptr<float>(), reward.data_ptr<float>(), value.data_ptr<float>(), ret.data_ptr<float>());
+                (float*)(is.data_ptr()), (float*)(reward.data_ptr()), (float*)(value.data_ptr()), (float*)(ret.data_ptr()));
     }
     {
         unsigned int block_size = DEFAULT_WARP_NUM * WARP_SIZE;
         unsigned int grid_size = (time_step * batch_size + block_size - 1) / block_size;
         vtraceAdvantage<<<grid_size, block_size>>>(
                 time_step, batch_size, gamma, rho_pg_clip_ratio,
-                is.data_ptr<float>(), reward.data_ptr<float>(), value.data_ptr<float>(), ret.data_ptr<float>(), adv.data_ptr<float>());
+                (float*)(is.data_ptr()), (float*)(reward.data_ptr()), (float*)(value.data_ptr()),
+                (float*)(ret.data_ptr()), (float*)(adv.data_ptr()));
     }
     {
         unsigned int block_size = DEFAULT_WARP_NUM * WARP_SIZE;
         unsigned int grid_size = (time_step * batch_size + block_size - 1) / block_size;
-        vtraceLoss<<<grid_size, block_size>>>(
-                time_step, batch_size, value.data_ptr<float>(), target_output_prob.data_ptr<float>(), target_output_entropy.data_ptr<float>(),
-                ret.data_ptr<float>(), adv.data_ptr<float>(), weight.data_ptr<float>(),
-                pg_loss.data_ptr<float>(), value_loss.data_ptr<float>(), entropy_loss.data_ptr<float>());
+        vtraceLoss<<<grid_size, block_size>>>(time_step, batch_size,
+                (float*)(value.data_ptr()), (float*)(target_output_prob.data_ptr()), (float*)(target_output_entropy.data_ptr()),
+                (float*)(ret.data_ptr()), (float*)(adv.data_ptr()), (float*)(weight.data_ptr()),
+                (float*)(pg_loss.data_ptr()), (float*)(value_loss.data_ptr()), (float*)(entropy_loss.data_ptr()));
     }
 }
 
@@ -111,17 +112,20 @@ void VTraceBackward(
     {
         unsigned int block_size = DEFAULT_WARP_NUM * WARP_SIZE;
         unsigned int grid_size = ((time_step + 1) * batch_size + block_size - 1) / block_size;
-        vtraceBackwardValue<<<grid_size, block_size>>>(
-                time_step, batch_size, grad_value_loss.data_ptr<float>(), value.data_ptr<float>(), ret.data_ptr<float>(),
-                weight.data_ptr<float>(), grad_value.data_ptr<float>());
+        vtraceBackwardValue<<<grid_size, block_size>>>(time_step, batch_size,
+                (float*)(grad_value_loss.data_ptr()), (float*)(value.data_ptr()), (float*)(ret.data_ptr()),
+                (float*)(weight.data_ptr()), (float*)(grad_value.data_ptr()));
     }
     {
         unsigned int block_size = DEFAULT_WARP_NUM * WARP_SIZE;
         unsigned int grid_size = time_step * batch_size;
         vtraceBackwardTargetOutput<<<grid_size, block_size>>>(
-                time_step, batch_size, num_output, grad_entropy_loss.data_ptr<float>(), grad_pg_loss.data_ptr<float>(),
-                target_output_grad_logits.data_ptr<float>(), target_output_grad_entropy.data_ptr<float>(), target_output_grad_prob.data_ptr<float>(),
-                adv.data_ptr<float>(), weight.data_ptr<float>(), grad_target_output.data_ptr<float>());
+                time_step, batch_size, num_output,
+                (float*)(grad_entropy_loss.data_ptr()), (float*)(grad_pg_loss.data_ptr()),
+                (float*)(target_output_grad_logits.data_ptr()),
+                (float*)(target_output_grad_entropy.data_ptr()),
+                (float*)(target_output_grad_prob.data_ptr()),
+                (float*)(adv.data_ptr()), (float*)(weight.data_ptr()), (float*)(grad_target_output.data_ptr()));
     }
 }
 

@@ -29,7 +29,7 @@ void IQNNStepTDErrorForward(
     torch::Tensor& grad_buf = outputs[index++];
 
     // set zero for atomic add
-    checkCudaErr(cudaMemsetAsync(loss.data_ptr<float>(), 0, sizeof(float)));
+    checkCudaErr(cudaMemsetAsync((float*)(loss.data_ptr()), 0, sizeof(float)));
 
     const unsigned int tau = q.size(0);
     const unsigned int tau_prime = next_n_q.size(0);
@@ -43,10 +43,10 @@ void IQNNStepTDErrorForward(
 
     bellmanErrorKernel<<<grid_size, block_size>>>(
             tau, tau_prime, time_step, batch_size, action_dim, gamma, kappa,
-            q.data_ptr<float>(), next_n_q.data_ptr<float>(),
-            action.data_ptr<int64_t>(), next_n_action.data_ptr<int64_t>(),
-            reward.data_ptr<float>(), done.data_ptr<float>(),
-            value_gamma.data_ptr<float>(), bellman_err_buf.data_ptr<float>());
+            (float*)(q.data_ptr()), (float*)(next_n_q.data_ptr()),
+            (int64_t*)(action.data_ptr()), (int64_t*)(next_n_action.data_ptr()),
+            (float*)(reward.data_ptr()), (float*)(done.data_ptr()),
+            (float*)(value_gamma.data_ptr()), (float*)(bellman_err_buf.data_ptr()));
     }
 
     {
@@ -55,8 +55,8 @@ void IQNNStepTDErrorForward(
 
         quantileHuberErrorKernel<<<grid_size, block_size>>> (
                 tau, tau_prime, batch_size, kappa,
-                bellman_err_buf.data_ptr<float>(), replay_quantiles.data_ptr<float>(),
-                quantile_huber_loss_buf.data_ptr<float>(), grad_buf.data_ptr<float>());
+                (float*)(bellman_err_buf.data_ptr()), (float*)(replay_quantiles.data_ptr()),
+                (float*)(quantile_huber_loss_buf.data_ptr()), (float*)(grad_buf.data_ptr()));
     }
 
     {
@@ -65,8 +65,8 @@ void IQNNStepTDErrorForward(
 
         lossKernel<<<grid_size, block_size>>> (
                 tau, tau_prime, batch_size,
-                quantile_huber_loss_buf.data_ptr<float>(), weight.data_ptr<float>(),
-                td_err.data_ptr<float>(), loss.data_ptr<float>());
+                (float*)(quantile_huber_loss_buf.data_ptr()), (float*)(weight.data_ptr()),
+                (float*)(td_err.data_ptr()), (float*)(loss.data_ptr()));
     }
 }
 
@@ -88,15 +88,15 @@ void IQNNStepTDErrorBackward(
     const unsigned int action_dim = grad_q.size(2);
 
     // set zero
-    checkCudaErr(cudaMemsetAsync(grad_q.data_ptr<float>(), 0, tau * batch_size * action_dim * sizeof(float)));
+    checkCudaErr(cudaMemsetAsync((float*)(grad_q.data_ptr()), 0, tau * batch_size * action_dim * sizeof(float)));
 
     dim3 block_size = {DEFAULT_WARP_NUM * WARP_SIZE, 1, 1};
     dim3 grid_size = {(tau + block_size.x - 1) / block_size.x, batch_size, 1};
     backwardKernel<<<grid_size, block_size>>>(
             tau, tau_prime, batch_size, action_dim,
-            grad_loss.data_ptr<float>(), grad_buf.data_ptr<float>(),
-            weight.data_ptr<float>(), action.data_ptr<int64_t>(),
-            grad_q.data_ptr<float>());
+            (float*)(grad_loss.data_ptr()), (float*)(grad_buf.data_ptr()),
+            (float*)(weight.data_ptr()), (int64_t*)(action.data_ptr()),
+            (float*)(grad_q.data_ptr()));
 }
 
 }  // namespace cuda

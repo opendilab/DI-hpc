@@ -38,11 +38,11 @@ void PPOForward(
     torch::Tensor& approx_kl = outputs[index++];
     torch::Tensor& clipfrac = outputs[index++];
 
-    checkCudaErr(cudaMemsetAsync(policy_loss.data_ptr<float>(), 0, sizeof(float)));
-    checkCudaErr(cudaMemsetAsync(value_loss.data_ptr<float>(), 0, sizeof(float)));
-    checkCudaErr(cudaMemsetAsync(entropy_loss.data_ptr<float>(), 0, sizeof(float)));
-    checkCudaErr(cudaMemsetAsync(approx_kl.data_ptr<float>(), 0, sizeof(float)));
-    checkCudaErr(cudaMemsetAsync(clipfrac.data_ptr<float>(), 0, sizeof(float)));
+    checkCudaErr(cudaMemsetAsync((float*)(policy_loss.data_ptr()), 0, sizeof(float)));
+    checkCudaErr(cudaMemsetAsync((float*)(value_loss.data_ptr()), 0, sizeof(float)));
+    checkCudaErr(cudaMemsetAsync((float*)(entropy_loss.data_ptr()), 0, sizeof(float)));
+    checkCudaErr(cudaMemsetAsync((float*)(approx_kl.data_ptr()), 0, sizeof(float)));
+    checkCudaErr(cudaMemsetAsync((float*)(clipfrac.data_ptr()), 0, sizeof(float)));
 
     const unsigned int batch_size = logits_new.size(0);
     const unsigned int num_output = logits_new.size(1);
@@ -50,24 +50,25 @@ void PPOForward(
         unsigned int block_size = DEFAULT_WARP_NUM * WARP_SIZE;
         unsigned int grid_size = batch_size;
         categoricalProbEntropy<<<grid_size, block_size>>>(
-                num_output, logits_new.data_ptr<float>(), action.data_ptr<int64_t>(),
-                logits_new_prob.data_ptr<float>(), logits_new_entropy.data_ptr<float>(),
-                logits_new_grad_logits.data_ptr<float>(), logits_new_grad_prob.data_ptr<float>(),
-                logits_new_grad_entropy.data_ptr<float>());
+                num_output, (float*)(logits_new.data_ptr()), (int64_t*)(action.data_ptr()),
+                (float*)(logits_new_prob.data_ptr()), (float*)(logits_new_entropy.data_ptr()),
+                (float*)(logits_new_grad_logits.data_ptr()), (float*)(logits_new_grad_prob.data_ptr()),
+                (float*)(logits_new_grad_entropy.data_ptr()));
         categoricalProb<<<grid_size, block_size>>>(
-                num_output, logits_old.data_ptr<float>(), action.data_ptr<int64_t>(), logits_old_prob.data_ptr<float>());
+                num_output, (float*)(logits_old.data_ptr()), (int64_t*)(action.data_ptr()), (float*)(logits_old_prob.data_ptr()));
     }
     {
         unsigned int block_size = DEFAULT_WARP_NUM * WARP_SIZE;
         unsigned int grid_size = (batch_size + block_size - 1) / block_size;
         ppoLoss<<<grid_size, block_size>>>(
-                batch_size, value_new.data_ptr<float>(), value_old.data_ptr<float>(),
-                logits_new_prob.data_ptr<float>(), logits_old_prob.data_ptr<float>(), logits_new_entropy.data_ptr<float>(),
-                adv.data_ptr<float>(), return_.data_ptr<float>(), weight.data_ptr<float>(),
+                batch_size, (float*)(value_new.data_ptr()), (float*)(value_old.data_ptr()),
+                (float*)(logits_new_prob.data_ptr()), (float*)(logits_old_prob.data_ptr()), (float*)(logits_new_entropy.data_ptr()),
+                (float*)(adv.data_ptr()), (float*)(return_.data_ptr()), (float*)(weight.data_ptr()),
                 use_value_clip, clip_ratio, dual_clip,
-                policy_loss.data_ptr<float>(), value_loss.data_ptr<float>(), entropy_loss.data_ptr<float>(),
-                approx_kl.data_ptr<float>(), clipfrac.data_ptr<float>(),
-                grad_policy_loss_buf.data_ptr<float>(), grad_value_loss_buf.data_ptr<float>(), grad_entropy_loss_buf.data_ptr<float>());
+                (float*)(policy_loss.data_ptr()), (float*)(value_loss.data_ptr()), (float*)(entropy_loss.data_ptr()),
+                (float*)(approx_kl.data_ptr()), (float*)(clipfrac.data_ptr()),
+                (float*)(grad_policy_loss_buf.data_ptr()), (float*)(grad_value_loss_buf.data_ptr()),
+                (float*)(grad_entropy_loss_buf.data_ptr()));
     }
 }
 
@@ -96,16 +97,16 @@ void PPOBackward(
         unsigned int block_size = DEFAULT_WARP_NUM * WARP_SIZE;
         unsigned int grid_size = (batch_size + block_size - 1) / block_size;
         ppoBackwardValueNew<<<grid_size, block_size>>>(
-                batch_size, grad_value_loss.data_ptr<float>(), grad_value_loss_buf.data_ptr<float>(), grad_value.data_ptr<float>());
+                batch_size, (float*)(grad_value_loss.data_ptr()), (float*)(grad_value_loss_buf.data_ptr()), (float*)(grad_value.data_ptr()));
     }
     {
         unsigned int block_size = DEFAULT_WARP_NUM * WARP_SIZE;
         unsigned int grid_size = batch_size;
         ppoBackwardLogitsNew<<<grid_size, block_size>>>(
-                batch_size, num_output, grad_policy_loss.data_ptr<float>(), grad_entropy_loss.data_ptr<float>(),
-                grad_policy_loss_buf.data_ptr<float>(), grad_entropy_loss_buf.data_ptr<float>(),
-                logits_new_grad_logits.data_ptr<float>(), logits_new_grad_prob.data_ptr<float>(), logits_new_grad_entropy.data_ptr<float>(),
-                grad_logits_new.data_ptr<float>());
+                batch_size, num_output, (float*)(grad_policy_loss.data_ptr()), (float*)(grad_entropy_loss.data_ptr()),
+                (float*)(grad_policy_loss_buf.data_ptr()), (float*)(grad_entropy_loss_buf.data_ptr()),
+                (float*)(logits_new_grad_logits.data_ptr()), (float*)(logits_new_grad_prob.data_ptr()),
+                (float*)(logits_new_grad_entropy.data_ptr()), (float*)(grad_logits_new.data_ptr()));
     }
 }
 

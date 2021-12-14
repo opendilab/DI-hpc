@@ -7,6 +7,6 @@ times = 6
 
 def mean_relative_error(y_true, y_pred):
     eps = 1e-5
-    relative_error = np.average(np.abs(y_true - y_pred) / (y_true + eps), axis=0)
+    relative_error = np.average(np.abs(y_true - y_pred) / (y_true + eps))
     return relative_error
 

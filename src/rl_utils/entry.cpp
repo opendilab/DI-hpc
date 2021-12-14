@@ -1,3 +1,4 @@
+#include <torch/extension.h>
 #include "hpc/rll/cuda/rl_utils/entry.h"
 
 namespace hpc {

@@ -6,7 +6,7 @@
 #include <vector>
 #include <fstream>
 
-#include <torch/extension.h>
+#include <torch/types.h>
 
 #include "hpc/rll/cuda/status.h"
 
