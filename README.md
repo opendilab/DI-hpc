@@ -2,12 +2,20 @@
 **DI-HPC** is an acceleration operator component for general algorithm modules in reinforcement learning algorithms, such as GAE, n-step TD and LSTM, etc. The operators support forward and backward propagation, and can be used in training, data collection, and test modules.
 
 ## Requirements
+#### Setting 1
 * CUDA 9.2
 * PyTorch 1.5 (recommend)
-* python 3.6.9
+* python 3.6 or python 3.7 or python3.8
 * Linux Platform
 
-*Note: We recommend that DI-HPC and DI-Engine share the same environment, and it should be fine with PyTorch from 1.3.1 to 1.8.*
+#### Setting 2
+* CUDA 9.0
+* gcc 5.4.0
+* PyTorch 1.1.0
+* python 3.6 or python 3.7
+* Linux Platform
+
+*Note: We recommend that DI-HPC and DI-Engine share the same environment, and it should be fine with PyTorch from 1.1.0 to 1.10.0.*
 
 ## Quick Start
 #### Install from whl
@@ -32,4 +40,13 @@ You will get benchmark result by following commands:
 ```
 $ python3 tests/test_gae.py
 ```
+## Feedback and Contribution
 
+- [File an issue](https://github.com/opendilab/DI-hpc/issues/new/choose) on Github
+- Discuss on DI-hpc [slack communication channel](https://join.slack.com/t/opendilab/shared_invite/zt-v9tmv4fp-nUBAQEH1_Kuyu_q4plBssQ) or QQ group (700157520)
+
+We appreciate all the feedbacks and contributions to improve DI-engine, both algorithms and system designs. And `CONTRIBUTING.md` offers some necessary information. 
+
+
+## License
+DI-hpc released under the Apache 2.0 license.
