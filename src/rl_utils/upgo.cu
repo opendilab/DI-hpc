@@ -21,7 +21,7 @@ void UpgoForward(
     torch::Tensor& loss = outputs[index++];
     torch::Tensor& grad_buf = outputs[index++];
 
-    checkCudaErr(cudaMemsetAsync(loss.data_ptr<float>(), 0, sizeof(float)));
+    checkCudaErr(cudaMemsetAsync((float*)(loss.data_ptr()), 0, sizeof(float)));
 
     const unsigned int time_step = target_output.size(0);
     const unsigned int batch_size = target_output.size(1);
@@ -29,20 +29,20 @@ void UpgoForward(
     {
         unsigned int block_size = DEFAULT_WARP_NUM * WARP_SIZE;
         unsigned int grid_size = (batch_size + block_size - 1) / block_size;
-        upgoAdvantageKernel<<<grid_size, block_size>>>(
-                time_step, batch_size, rho.data_ptr<float>(), reward.data_ptr<float>(), value.data_ptr<float>(), advantage.data_ptr<float>());
+        upgoAdvantageKernel<<<grid_size, block_size>>>(time_step, batch_size,
+                (float*)(rho.data_ptr()), (float*)(reward.data_ptr()), (float*)(value.data_ptr()), (float*)(advantage.data_ptr()));
     }
     {
         unsigned int block_size = DEFAULT_WARP_NUM * WARP_SIZE;
         unsigned int grid_size = time_step * batch_size;
-        crossEntropyKernel<<<grid_size, block_size>>>(
-                num_output, target_output.data_ptr<float>(), action.data_ptr<int64_t>(), metric.data_ptr<float>(), grad_buf.data_ptr<float>());
+        crossEntropyKernel<<<grid_size, block_size>>>(num_output,
+                (float*)(target_output.data_ptr()), (int64_t*)(action.data_ptr()), (float*)(metric.data_ptr()), (float*)(grad_buf.data_ptr()));
     }
     {
         unsigned int block_size = DEFAULT_WARP_NUM * WARP_SIZE;
         unsigned int grid_size = (time_step * batch_size + block_size - 1) / block_size;
-        upgoLossKernel<<<grid_size, block_size>>>(
-                time_step, batch_size, advantage.data_ptr<float>(), metric.data_ptr<float>(), loss.data_ptr<float>());
+        upgoLossKernel<<<grid_size, block_size>>>(time_step, batch_size,
+                (float*)(advantage.data_ptr()), (float*)(metric.data_ptr()), (float*)(loss.data_ptr()));
     }
 }
 
@@ -63,10 +63,9 @@ void UpgoBackward(
 
     unsigned int block_size = DEFAULT_WARP_NUM * WARP_SIZE;
     unsigned int grid_size = (time_step * batch_size * num_output + block_size - 1) / block_size;
-    upgoBackwardKernel<<<grid_size, block_size>>>(
-            time_step, batch_size, num_output,
-            grad_loss.data_ptr<float>(), grad_buf.data_ptr<float>(),
-            advantage.data_ptr<float>(), grad_target_output.data_ptr<float>());
+    upgoBackwardKernel<<<grid_size, block_size>>>(time_step, batch_size, num_output,
+            (float*)(grad_loss.data_ptr()), (float*)(grad_buf.data_ptr()),
+            (float*)(advantage.data_ptr()), (float*)(grad_target_output.data_ptr()));
 }
 
 }  // namespace cuda

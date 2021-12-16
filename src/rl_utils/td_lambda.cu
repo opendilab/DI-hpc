@@ -19,7 +19,7 @@ void TdLambdaForward(
     torch::Tensor& loss = outputs[index++];
     torch::Tensor& grad_buf = outputs[index++];
 
-    checkCudaErr(cudaMemsetAsync(loss.data_ptr<float>(), 0, sizeof(float)));
+    checkCudaErr(cudaMemsetAsync((float*)(loss.data_ptr()), 0, sizeof(float)));
 
 	const unsigned int time_step = reward.size(0);
 	const unsigned int batch_size = reward.size(1);
@@ -28,8 +28,8 @@ void TdLambdaForward(
     unsigned int grid_size = (batch_size + block_size - 1) / block_size;
     tdLambdaForwardKernel<<<grid_size, block_size>>>(
             time_step, batch_size, gamma, lambda,
-            value.data_ptr<float>(), reward.data_ptr<float>(), weight.data_ptr<float>(),
-            loss.data_ptr<float>(), grad_buf.data_ptr<float>());
+            (float*)(value.data_ptr()), (float*)(reward.data_ptr()), (float*)(weight.data_ptr()),
+            (float*)(loss.data_ptr()), (float*)(grad_buf.data_ptr()));
 }
 
 void TdLambdaBackward(
@@ -48,7 +48,7 @@ void TdLambdaBackward(
     unsigned int block_size = DEFAULT_WARP_NUM * WARP_SIZE;
     unsigned int grid_size = ((time_step + 1) * batch_size + block_size - 1) / block_size;
     tdLambdaBackwardKernel<<<grid_size, block_size>>>(
-            time_step, batch_size, grad_loss.data_ptr<float>(), grad_buf.data_ptr<float>(), grad_value.data_ptr<float>());
+            time_step, batch_size, (float*)(grad_loss.data_ptr()), (float*)(grad_buf.data_ptr()), (float*)(grad_value.data_ptr()));
 }
 
 }  // namespace cuda

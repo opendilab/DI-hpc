@@ -24,7 +24,7 @@ void QNStepTdRescaleForward(
     torch::Tensor& grad_buf = outputs[index++];
 
     // set zero for atomic add
-    checkCudaErr(cudaMemsetAsync(loss.data_ptr<float>(), 0, sizeof(float)));
+    checkCudaErr(cudaMemsetAsync((float*)(loss.data_ptr()), 0, sizeof(float)));
 
 	const unsigned int time_step = reward.size(0);
 	const unsigned int batch_size = q.size(0);
@@ -34,10 +34,10 @@ void QNStepTdRescaleForward(
     unsigned int grid_size = (batch_size + block_size - 1) / block_size;
     qNStepTdRescaleForwardKernel<<<grid_size, block_size>>>(
             time_step, batch_size, num_output, gamma,
-            q.data_ptr<float>(), next_n_q.data_ptr<float>(),
-            action.data_ptr<int64_t>(), next_n_action.data_ptr<int64_t>(),
-            reward.data_ptr<float>(), done.data_ptr<float>(), weight.data_ptr<float>(),
-            td_err.data_ptr<float>(), loss.data_ptr<float>(), grad_buf.data_ptr<float>());
+            (float*)(q.data_ptr()), (float*)(next_n_q.data_ptr()),
+            (int64_t*)(action.data_ptr()), (int64_t*)(next_n_action.data_ptr()),
+            (float*)(reward.data_ptr()), (float*)(done.data_ptr()), (float*)(weight.data_ptr()),
+            (float*)(td_err.data_ptr()), (float*)(loss.data_ptr()), (float*)(grad_buf.data_ptr()));
 }
 
 void QNStepTdRescaleBackward(
@@ -58,7 +58,8 @@ void QNStepTdRescaleBackward(
     dim3 grid_size = {(num_output + block_size.x - 1) / block_size.x, batch_size, 1};
     qNStepTdRescaleBackwardKernel<<<grid_size, block_size>>>(
             batch_size, num_output,
-            grad_loss.data_ptr<float>(), grad_buf.data_ptr<float>(), action.data_ptr<int64_t>(), grad_q.data_ptr<float>());
+            (float*)(grad_loss.data_ptr()), (float*)(grad_buf.data_ptr()),
+            (int64_t*)(action.data_ptr()), (float*)(grad_q.data_ptr()));
 }
 
 }  // namespace cuda

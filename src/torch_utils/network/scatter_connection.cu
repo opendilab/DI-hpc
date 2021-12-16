@@ -24,7 +24,7 @@ void ScatterConnectionForward(
 
     // forward kernel is launched according to input size, some output element will not be set value
     unsigned int out_size = B * N * H * W;
-    checkCudaErr(cudaMemsetAsync(out.data_ptr<float>(), 0, out_size * sizeof(float)));
+    checkCudaErr(cudaMemsetAsync((float*)(out.data_ptr()), 0, out_size * sizeof(float)));
 
     if (std::string(scatter_type) == "cover") {
         /*
@@ -34,17 +34,17 @@ void ScatterConnectionForward(
         dim3 block_size = WARP_SIZE;
         dim3 grid_size = B * N * H * W;
         scatterConnectionCoverKeepSeqForwardKernel<<<grid_size, block_size>>>(
-        B, M, N, H, W, in.data_ptr<float>(), loc.data_ptr<int64_t>(), out.data_ptr<float>());
+        B, M, N, H, W, (float*)(in.data_ptr()), (int64_t*)(loc.data_ptr()), (float*)(out.data_ptr()));
          */
         dim3 block_size = {WARP_SIZE, DEFAULT_WARP_NUM, 1};
         dim3 grid_size = {(N + block_size.x - 1) / block_size.x, (M + block_size.y - 1) / block_size.y, B};
         scatterConnectionCoverForwardKernel<<<grid_size, block_size>>>(
-                B, M, N, H, W, in.data_ptr<float>(), loc.data_ptr<int64_t>(), out.data_ptr<float>());
+                B, M, N, H, W, (float*)(in.data_ptr()), (int64_t*)(loc.data_ptr()), (float*)(out.data_ptr()));
     } else if (std::string(scatter_type) == "add") {
         dim3 block_size = {WARP_SIZE, DEFAULT_WARP_NUM, 1};
         dim3 grid_size = {(N + block_size.x - 1) / block_size.x, (M + block_size.y - 1) / block_size.y, B};
         scatterConnectionAddForwardKernel<<<grid_size, block_size>>>(
-                B, M, N, H, W, in.data_ptr<float>(), loc.data_ptr<int64_t>(), out.data_ptr<float>());
+                B, M, N, H, W, (float*)(in.data_ptr()), (int64_t*)(loc.data_ptr()), (float*)(out.data_ptr()));
     }
 }
 
@@ -67,7 +67,7 @@ void ScatterConnectionBackward(
     dim3 block_size = {WARP_SIZE, DEFAULT_WARP_NUM, 1};
     dim3 grid_size = {(N + block_size.x - 1) / block_size.x, (M + block_size.y - 1) / block_size.y, B};
     scatterConnectionBackwardKernel<<<grid_size, block_size>>>(
-            B, M, N, H, W, grad_out.data_ptr<float>(), loc.data_ptr<int64_t>(), grad_in.data_ptr<float>());
+            B, M, N, H, W, (float*)(grad_out.data_ptr()), (int64_t*)(loc.data_ptr()), (float*)(grad_in.data_ptr()));
 }
 
 }  // namespace cuda

@@ -26,8 +26,8 @@ void DistNStepTdForward(
     torch::Tensor& buf = outputs[index++];
 
     // set zero for atomic add
-    checkCudaErr(cudaMemsetAsync(loss.data_ptr<float>(), 0, sizeof(float) * loss.numel()));
-    checkCudaErr(cudaMemsetAsync(buf.data_ptr<float>(), 0, sizeof(float) * buf.numel()));
+    checkCudaErr(cudaMemsetAsync(loss.data_ptr(), 0, sizeof(float) * loss.numel()));
+    checkCudaErr(cudaMemsetAsync(buf.data_ptr(), 0, sizeof(float) * buf.numel()));
 
     const unsigned int time_step = reward.size(0);
     const unsigned int batch_size = dist.size(0);
@@ -36,14 +36,14 @@ void DistNStepTdForward(
 
     // buf0: B for reward x fp reward_factor
     // buf1: (B * n_atom) for fp proj_dist and bp grad
-    float* buf0 = buf.data_ptr<float>();
-    float* buf1 = buf.data_ptr<float>() + batch_size;
+    float* buf0 = (float*)(buf.data_ptr());
+    float* buf1 = (float*)(buf.data_ptr()) + batch_size;
 
     {
         unsigned int block_size = DEFAULT_WARP_NUM * WARP_SIZE;
         unsigned int grid_size = (batch_size + block_size - 1) / block_size;
         distNStepTdRewardKernel<<<grid_size, block_size>>>(
-                time_step, batch_size, gamma, reward.data_ptr<float>(), buf0);
+                time_step, batch_size, gamma, (float*)(reward.data_ptr()), buf0);
     }
 
     {
@@ -56,17 +56,17 @@ void DistNStepTdForward(
         dim3 grid_size = {(n_atom + block_size.x - 1) / block_size.x, batch_size, 1};
         distNStepTdProjKernel<<<grid_size, block_size>>>(
                 batch_size, action_dim, n_atom, gamma_nstep, v_min, v_max, delta,
-                next_n_dist.data_ptr<float>(), next_n_action.data_ptr<int64_t>(),
-                buf0, done.data_ptr<float>(), buf1);
+                (float*)(next_n_dist.data_ptr()), (int64_t*)(next_n_action.data_ptr()),
+                buf0, (float*)(done.data_ptr()), buf1);
     }
 
     {
         dim3 block_size = {DEFAULT_WARP_NUM * WARP_SIZE, 1, 1};
         dim3 grid_size = {(n_atom + block_size.x - 1) / block_size.x, batch_size, 1};
         distNStepTdLossKernel<<<grid_size, block_size>>>(
-                batch_size, action_dim, n_atom, dist.data_ptr<float>(), action.data_ptr<int64_t>(),
-                (const float*)buf1, weight.data_ptr<float>(),
-                td_err.data_ptr<float>(), loss.data_ptr<float>(), buf1);
+                batch_size, action_dim, n_atom, (float*)(dist.data_ptr()), (int64_t*)(action.data_ptr()),
+                (const float*)buf1, (float*)(weight.data_ptr()),
+                (float*)(td_err.data_ptr()), (float*)(loss.data_ptr()), buf1);
     }
 }
 
@@ -87,13 +87,13 @@ void DistNStepTdBackward(
 
     // buf0: B for reward x fp reward_factor
     // buf1: (B * n_atom) for fp proj_dist and bp grad, here used for bp grad
-    float* grad_buf = buf.data_ptr<float>() + batch_size;
+    float* grad_buf = (float*)(buf.data_ptr()) + batch_size;
 
     unsigned int block_size = DEFAULT_WARP_NUM * WARP_SIZE;
     unsigned int grid_size = (batch_size * action_dim * n_atom + block_size - 1) / block_size;
     distNStepTdBackwardKernel<<<grid_size, block_size>>>(
-            batch_size, action_dim, n_atom, grad_loss.data_ptr<float>(), grad_buf,
-            action.data_ptr<int64_t>(), grad_dist.data_ptr<float>());
+            batch_size, action_dim, n_atom, (float*)(grad_loss.data_ptr()), grad_buf,
+            (int64_t*)(action.data_ptr()), (float*)(grad_dist.data_ptr()));
 }
 
 }  // namespace cuda

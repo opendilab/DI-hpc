@@ -24,7 +24,7 @@ void GaeForward(
     unsigned int grid_size = (batch_size + block_size - 1) / block_size;
     gaeForwardKernel<<<grid_size, block_size>>>(
             time_step, batch_size, gamma, lambda,
-            value.data_ptr<float>(), reward.data_ptr<float>(), adv.data_ptr<float>());
+            (float*)(value.data_ptr()), (float*)(reward.data_ptr()), (float*)(adv.data_ptr()));
 }
 
 }  // namespace cuda
