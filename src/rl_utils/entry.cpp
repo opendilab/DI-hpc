@@ -6,6 +6,10 @@ namespace rll {
 namespace cuda {
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+    m.def("Pad1DForward", &Pad1DForward, "Pad1D forward (CUDA)");
+    m.def("Unpad1DForward", &Unpad1DForward, "Unpad1D forward (CUDA)");
+    m.def("Pad2DForward", &Pad2DForward, "Pad2D forward (CUDA)");
+    m.def("Unpad2DForward", &Unpad2DForward, "Unpad2D forward (CUDA)");
     m.def("DistNStepTdForward", &DistNStepTdForward, "dist_nstep_td forward (CUDA)");
     m.def("DistNStepTdBackward", &DistNStepTdBackward, "dist_nstep_td backward (CUDA)");
     m.def("GaeForward", &GaeForward, "gae forward (CUDA)");

@@ -7,6 +7,34 @@ namespace hpc {
 namespace rll {
 namespace cuda {
 
+template<typename T>
+void Pad1DForward(
+    const std::vector<torch::Tensor>& inputs, 
+    torch::Tensor shape, 
+    torch::Tensor new_x, 
+    torch::Tensor mask,
+    int value = 0);
+
+template<typename T>
+void Unpad1DForward(
+    torch::Tensor inputs, 
+    torch::Tensor shape, 
+    std::vector<torch::Tensor>& outputs);
+
+template<typename T>
+void Pad2DForward(
+    const std::vector<torch::Tensor>& inputs, 
+    torch::Tensor shape, 
+    torch::Tensor new_x,
+    torch::Tensor mask, 
+    int value = 0);
+
+template<typename T>
+void Unpad2DForward(
+    torch::Tensor inputs, 
+    torch::Tensor shape, 
+    std::vector<torch::Tensor>& outputs);
+
 // gae
 void GaeForward(
     const std::vector<torch::Tensor>& inputs,
