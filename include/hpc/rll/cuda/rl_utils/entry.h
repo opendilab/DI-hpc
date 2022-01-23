@@ -7,32 +7,76 @@ namespace hpc {
 namespace rll {
 namespace cuda {
 
-template<typename T>
 void Pad1DForward(
     const std::vector<torch::Tensor>& inputs, 
-    torch::Tensor shape, 
-    torch::Tensor new_x, 
-    torch::Tensor mask,
-    int value = 0);
+    const torch::Tensor& shape,
+    torch::Tensor& new_x, 
+    torch::Tensor& mask, 
+    const int& max_shape, 
+    const int& value);
 
-template<typename T>
+void GroupPad1DForward(
+    const std::vector<torch::Tensor>& inputs, 
+    const torch::Tensor& shape,
+    std::vector<torch::Tensor>& new_x, 
+    std::vector<torch::Tensor>& mask, 
+    const torch::Tensor& max_shape, 
+    const torch::Tensor& group_id, 
+    const torch::Tensor* group_idx, 
+    const int& value);
+
 void Unpad1DForward(
-    torch::Tensor inputs, 
-    torch::Tensor shape, 
+    const torch::Tensor& inputs, 
+    const torch::Tensor& shape, 
     std::vector<torch::Tensor>& outputs);
 
-template<typename T>
 void Pad2DForward(
     const std::vector<torch::Tensor>& inputs, 
-    torch::Tensor shape, 
-    torch::Tensor new_x,
-    torch::Tensor mask, 
-    int value = 0);
+    const torch::Tensor& shape, 
+    torch::Tensor& new_x,
+    torch::Tensor& mask, 
+    const int& max_shape0, 
+    const int& max_shape1, 
+    const int& value);
 
-template<typename T>
+void GroupPad2DForward(
+    const std::vector<torch::Tensor>& inputs, 
+    const torch::Tensor& shape,
+    std::vector<torch::Tensor>& new_x, 
+    std::vector<torch::Tensor>& mask, 
+    const torch::Tensor& max_shape, 
+    const torch::Tensor& group_id, 
+    const torch::Tensor* group_idx, 
+    const int& value);
+
 void Unpad2DForward(
-    torch::Tensor inputs, 
-    torch::Tensor shape, 
+    const torch::Tensor& inputs, 
+    const torch::Tensor& shape, 
+    std::vector<torch::Tensor>& outputs);
+
+void Pad3DForward(
+    const std::vector<torch::Tensor>& inputs, 
+    torch::Tensor& shape, 
+    torch::Tensor* new_x,
+    torch::Tensor& mask, 
+    const int max_shape0, 
+    const int max_shape1, 
+    const int max_shape2, 
+    const int& value);
+
+void GroupPad3DForward(
+    const std::vector<torch::Tensor>& inputs, 
+    const torch::Tensor& shape,
+    std::vector<torch::Tensor>& new_x, 
+    std::vector<torch::Tensor>& mask, 
+    const torch::Tensor& max_shape, 
+    const torch::Tensor& group_id, 
+    const torch::Tensor* group_idx, 
+    const int& value);
+
+void Unpad3DForward(
+    const torch::Tensor inputs, 
+    const torch::Tensor shape, 
     std::vector<torch::Tensor>& outputs);
 
 // gae
