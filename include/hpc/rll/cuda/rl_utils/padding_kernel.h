@@ -123,8 +123,8 @@ __global__ void Unpad2D_kernel(const float* inputs, const int* ori_shape, float*
     auto cur_out = outputs[blockIdx.x];
     auto cur_shape0 = ori_shape[blockIdx.x * 2];
     auto cur_shape1 = ori_shape[blockIdx.x * 2 + 1];
-    for(auto tid_y = threadIdx.y; tid_y < cur_shape0; tid += blockDim.y)
-        for(auto tid_x = threadIdx.x; tid_x < cur_shape1; tid += blockDim.x) {
+    for(auto tid_y = threadIdx.y; tid_y < cur_shape0; tid_y += blockDim.y)
+        for(auto tid_x = threadIdx.x; tid_x < cur_shape1; tid_x += blockDim.x) {
             cur_out[tid_y * cur_shape1 + tid_x] = __ldg(cur_in + tid_y * cur_shape1 + tid_x);
         }
 }
@@ -185,10 +185,6 @@ __global__ void Unpad3D_kernel(const float* inputs, const int* ori_shape, float*
             }
 }
 
-
-        }
-    }
-}
 
 }  // namespace cuda
 }  // namespace rll

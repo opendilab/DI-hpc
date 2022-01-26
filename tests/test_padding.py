@@ -2,29 +2,47 @@ import time
 import numpy as np
 import torch
 from functools import reduce
-#from hpcrll.origin.padding import Padding1D, UnPadding1D, Padding2D, UnPadding2D, Padding3D, UnPadding3D
-from padding import Padding1D, UnPadding1D, Padding2D, UnPadding2D, Padding3D, UnPadding3D
+from hpc_rll.origin.padding import Padding1D, UnPadding1D, Padding2D, UnPadding2D, Padding3D, UnPadding3D
+
 
 B = 64
 range_1D = [32, 128]
 range_2D = [[48, 80], [32, 64]]
 range_3D = [[24, 32], [24, 32], [32, 40]]
-cuda = False
+cuda = False and torch.cuda.is_available()
 
 
-def test_padding_1D():
+def test_padding_1D(times=5, scheme={'naive': [Padding1D, UnPadding1D]}):
+    if cuda:
+        import hpc_rll.rl_utils.padding as H
+        scheme['hpc'] = [H.Padding1D, UnPadding1D]
+    # warm up
+    for _ in range(10):
+        tmp = torch.randn(128, 128)
+        if cuda:
+            tmp = tmp.cuda()
+        torch.matmul(tmp, tmp)
+    # test
     shapes = [(np.random.randint(range_1D[0], range_1D[1]), ) for _ in range(B)]
     data = [torch.randn(*s) for s in shapes]
     if cuda:
         data = [d.cuda() for d in data]
     assert len(data) == B
     max_shape = [max(t) for t in list(zip(*shapes))]
-    padding_data, padding_mask, ori_shapes = Padding1D(data)
-    assert padding_data.shape == (B, *max_shape)
-    assert padding_mask.shape == (B, *max_shape)
-    unpadding_data = UnPadding1D(padding_data, ori_shapes)
-    for item, new_item in zip(data, unpadding_data):
-        assert item.eq(new_item).all()
+    for name, [pad, unpad] in scheme.items():
+        if name == 'hpc':
+            assert cuda
+        for i in range(times):
+            t = time.time()
+            padding_data, padding_mask, ori_shapes = pad(data)
+            assert padding_data.shape == (B, *max_shape)
+            assert padding_mask.shape == (B, *max_shape)
+            unpadding_data = unpad(padding_data, ori_shapes)
+            for item, new_item in zip(data, unpadding_data):
+                assert item.eq(new_item).all()
+            if cuda:
+                torch.cuda.synchronize()
+            print('epoch: {}, {} cost time: {}'.format(i, name, time.time() - t))
     print("test_padding_1D OK")
 
     for mode in ['sample', 'oracle']:
@@ -91,5 +109,5 @@ def test_padding_3D():
 
 if __name__ == "__main__":
     test_padding_1D()
-    test_padding_2D()
-    test_padding_3D()
+    # test_padding_2D()
+    # test_padding_3D()

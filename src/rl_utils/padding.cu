@@ -12,7 +12,7 @@ void Pad1DForward(const std::vector<torch::Tensor>& inputs, const torch::Tensor&
     int* shape_ptr = (int*)shape.data_ptr();
     float** inputs_ptr = new float*[n];
     float* new_x_ptr = new_x.data_ptr<float>();
-    int* mask_ptr = mask.data_ptr<int>();
+    float* mask_ptr = mask.data_ptr<float>();
     for(int i = 0; i < n; i++)
         inputs_ptr[i] = inputs[i].data_ptr<float>();
     dim3 grid(n, 1, 1);
@@ -23,7 +23,7 @@ void Pad1DForward(const std::vector<torch::Tensor>& inputs, const torch::Tensor&
 void GroupPad1DForward(const std::vector<torch::Tensor>& inputs, const torch::Tensor& shape,
                  std::vector<torch::Tensor>& new_x, std::vector<torch::Tensor>& mask, 
                  const torch::Tensor& max_shape, const torch::Tensor& group_id, 
-                 const torch::Tensor* group_idx, const int& value) {
+                 const torch::Tensor& group_idx, const int& value) {
     const int n = inputs.size();
     const int group_num = new_x.size();
     float** new_x_ptr = new float*[group_num];
@@ -35,7 +35,7 @@ void GroupPad1DForward(const std::vector<torch::Tensor>& inputs, const torch::Te
     int max_shape_global = 0;
     for(int i = 0; i < group_num; i++) {
         new_x_ptr[i] = new_x[i].data_ptr<float>();
-        mask_ptr[i] = mask[i].data_ptr<int>();
+        mask_ptr[i] = mask[i].data_ptr<float>();
         if(max_shape_global < max_shape_ptr[i]) {
             max_shape_global = max_shape_ptr[i];
         }
@@ -68,7 +68,7 @@ void Pad2DForward(const std::vector<torch::Tensor>& inputs, const torch::Tensor&
     float** inputs_ptr = new float*[n];
     int* shape_ptr = shape.data_ptr<int>();
     float* new_x_ptr = new_x.data_ptr<float>();
-    int* mask_ptr = mask.data_ptr<int>();
+    float* mask_ptr = mask.data_ptr<float>();
     for(int i = 0; i < n; i++) {
         inputs_ptr[i] = inputs[i].data_ptr<float>();
     }
@@ -80,7 +80,7 @@ void Pad2DForward(const std::vector<torch::Tensor>& inputs, const torch::Tensor&
 void GroupPad2DForward(const std::vector<torch::Tensor>& inputs, const torch::Tensor& shape,
                  std::vector<torch::Tensor>& new_x, std::vector<torch::Tensor>& mask, 
                  const torch::Tensor& max_shape, const torch::Tensor& group_id, 
-                 const torch::Tensor* group_idx, const int& value) {
+                 const torch::Tensor& group_idx, const int& value) {
     const int n = inputs.size();
     const int group_num = new_x.size();
     float** new_x_ptr = new float*[group_num];
@@ -93,7 +93,7 @@ void GroupPad2DForward(const std::vector<torch::Tensor>& inputs, const torch::Te
     int max_shape_global1 = 0;
     for(int i = 0; i < group_num; i++) {
         new_x_ptr[i] = new_x[i].data_ptr<float>();
-        mask_ptr[i] = mask[i].data_ptr<int>();
+        mask_ptr[i] = mask[i].data_ptr<float>();
         if(max_shape_global0 < max_shape_ptr[i * 2]) {
             max_shape_global0 = max_shape_ptr[i * 2];
         }
@@ -113,7 +113,7 @@ void Unpad2DForward(const torch::Tensor& inputs, const torch::Tensor& shape, std
     const int n = inputs.size();
     float* inputs_ptr = inputs.data_ptr<float>();
     float** outputs_ptr = new float*[n]
-    const int* shape_ptr = (int*)shape.data_ptr();
+    const int* shape_ptr = shape.data_ptr<int>();
     for(int i = 0; i < n; i++) {
         outputs_ptr[i] = outputs[i].data_ptr<float>();
         if(max_shape0 < shape_ptr[i * 2]) {
@@ -128,13 +128,13 @@ void Unpad2DForward(const torch::Tensor& inputs, const torch::Tensor& shape, std
     Unpad2D_kernel<<<grid, block>>>(inputs_ptr, shape_ptr, outputs_ptr, max_shape0, max_shape1);
 }
 
-void Pad3DForward(const std::vector<torch::Tensor>& inputs, torch::Tensor& shape, torch::Tensor* new_x,
+void Pad3DForward(const std::vector<torch::Tensor>& inputs, torch::Tensor& shape, torch::Tensor& new_x,
             torch::Tensor& mask, const int max_shape0, const int max_shape1, const int max_shape2, const int& value) {
     const int n = inputs.size();
     float** inputs_ptr = new float*[n];
     const int* shape_ptr = shape.data_ptr<int>();
     float* new_x_ptr = new_x.data_ptr<float>();
-    int* mask_ptr = mask.data_ptr<int>();
+    float* mask_ptr = mask.data_ptr<float>();
     for(int i = 0; i < n; i++) {
         inputs_ptr[i] = inputs[i].data_ptr<float>();
     }
@@ -146,7 +146,7 @@ void Pad3DForward(const std::vector<torch::Tensor>& inputs, torch::Tensor& shape
 void GroupPad3DForward(const std::vector<torch::Tensor>& inputs, const torch::Tensor& shape,
                  std::vector<torch::Tensor>& new_x, std::vector<torch::Tensor>& mask, 
                  const torch::Tensor& max_shape, const torch::Tensor& group_id, 
-                 const torch::Tensor* group_idx, const int& value) {
+                 const torch::Tensor& group_idx, const int& value) {
     const int n = inputs.size();
     const int group_num = new_x.size();
     float** new_x_ptr = new float*[group_num];
@@ -160,7 +160,7 @@ void GroupPad3DForward(const std::vector<torch::Tensor>& inputs, const torch::Te
     int max_shape_global2 = 0;
     for(int i = 0; i < group_num; i++) {
         new_x_ptr[i] = new_x[i].data_ptr<float>();
-        mask_ptr[i] = mask[i].data_ptr<int>();
+        mask_ptr[i] = mask[i].data_ptr<float>();
         if(max_shape_global0 < max_shape_ptr[i * 3]) {
             max_shape_global0 = max_shape_ptr[i * 3];
         }

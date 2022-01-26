@@ -26,6 +26,7 @@ ext_modules.append(
             'src/rl_utils/vtrace.cu',
             'src/rl_utils/iqn_nstep_td_error.cu',
             'src/rl_utils/qrdqn_nstep_td_error.cu',
+            'src/models/actor_critic.cu',
             ], include_dirs=['include'])
         )
 ext_modules.append(
