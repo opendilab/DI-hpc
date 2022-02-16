@@ -6,6 +6,8 @@ namespace rll {
 namespace cuda {
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+    m.def("sample_split_group", &sample_split_group, "sample_split_group");
+    m.def("oracle_split_group", &oracle_split_group, "oracle_split_group");
     m.def("Pad1DForward", &Pad1DForward, "Pad1D forward (CUDA)");
     m.def("GroupPad1DForward", &GroupPad1DForward, "Pad1D forward (CUDA)");
     m.def("Unpad1DForward", &Unpad1DForward, "Unpad1D forward (CUDA)");
