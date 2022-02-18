@@ -11,6 +11,8 @@ VERSION = '0.0.2'
 DESC = 'GPU-Accelerated library for reinforcement learning'
 PLATFORMS = 'linux-x86_64'
 PACKAGES = ['hpc_rll', 'hpc_rll.origin', 'hpc_rll.rl_utils', 'hpc_rll.torch_utils', 'hpc_rll.torch_utils.network']
+include_dirs = [os.path.join(os.getcwd(), 'include')]
+print('include_dirs', include_dirs)
 
 ext_modules = []
 ext_modules.append(
@@ -28,14 +30,14 @@ ext_modules.append(
             'src/rl_utils/iqn_nstep_td_error.cu',
             'src/rl_utils/qrdqn_nstep_td_error.cu',
             'src/models/actor_critic.cu',
-            ], include_dirs=['/mnt/lustre/yangyuehang/git/di-hpc/include'])
+            ], include_dirs=include_dirs)
         )
 ext_modules.append(
         CUDAExtension('hpc_torch_utils_network', sources=[
             'src/torch_utils/network/entry.cpp',
             'src/torch_utils/network/lstm.cu',
             'src/torch_utils/network/scatter_connection.cu'
-            ], include_dirs=['/mnt/lustre/yangyuehang/git/di-hpc/include']),
+            ], include_dirs=include_dirs),
         )
 
 if int("".join(list(filter(str.isdigit, torch.__version__)))) >= 120:
@@ -43,7 +45,7 @@ if int("".join(list(filter(str.isdigit, torch.__version__)))) >= 120:
             CUDAExtension('hpc_models', sources=[
                 'src/models/entry.cpp',
                 'src/models/actor_critic.cu',
-                ], include_dirs=['/mnt/lustre/yangyuehang/git/di-hpc/include']),
+                ], include_dirs=include_dirs),
             )
 else:
     warnings.warn("Torch version is less than 1.2. BoolTensor is not yet well implemented. Thus we skip the compiliation of hpc_models.")
@@ -59,22 +61,3 @@ setup(
         'build_ext': BuildExtension
     }
 )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
