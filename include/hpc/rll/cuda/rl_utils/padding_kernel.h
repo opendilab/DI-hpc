@@ -9,36 +9,84 @@ namespace rll {
 namespace cuda {
     /*
 void Pad1D :
-std::vector<torch::Tensor>& inputs,    用vector保存输入的list of tensor
-const int* shape,                      用指针保存一维输入的shape
-float* new_x,                              输出new_x，按照输入X的顺序排列，n*max_shape
-float* mask,                               输出mask，n*max_shape
-const int max_shape，                  输入shape中的最大值
-const int value,                       padding value
+float** inputs,                     2-dim pointer store the inputs(list of tensor),
+const int* shape,                   each tensor's dim, length = 1(num of dim) * n(num of input tensors)
+float* new_x,                       output after padding, [n * max_shape]
+int* mask,                          output mask, [n * max_shape]
+const int max_shape,                max dim in d0
+const int value = 0                 padding value
 
-void UnPad1D :
-const float* inputs,                        用一维保存输入的padded tensor，n*max_shape
-const int* ori_shape,                   用指针保存一维的原始shape
-std::vector<torch::Tensor>& outputs,    输出x
-const int max_shape，                   输入shape中的最大值
+void GroupPad1D_kernel :
+float** inputs,                     2-dim pointer store the inputs(list of tensor),
+const int* shape,                   each tensor's dim, length = 1(num of dim) * n(num of input tensors)
+float** new_x,                      output after padding, [group_num, group_tensor_cnt * max_shape]
+int** mask,                         output mask, [group_num, group_tensor_cnt * max_shape]
+const int* max_shape,               max dim in d0 of the group, [group_num]
+const int* group_id,                tensor_id -> group_id, [n]
+const int* group_idx,               start tensor index of each group, [group_num]
+int value = 0                       padding value
 
+void Unpad1D_kernel :
+float* inputs,                      tensors after pad, 
+const int* ori_shape,               each tensor's dim, length = 1(num of dim) * n(num of input tensors)
+float** outputs,                    tensors before padding
+const int max_shape                 max dim in d0
 
 void Pad2D :
-std::vector<torch::Tensor>& inputs,    用vector保存输入的list of tensor
-const int* shape,           用指针保存二维输入的shape
-float* new_x,                   输出new_x，按照输入X的顺序排列，n*max_shape0*max_shape1
-float* mask,                    输出mask，n*max_shape0*max_shape1
-const int max_shape0，      输入shape中0维度的最大值
-const int max_shape1，      输入shape中1维度的最大值
-const int value,            padding value
+float** inputs,                     2-dim pointer store the inputs(list of tensor),
+const int* shape,                   each tensor's dim, length = 2(num of dim) * n(num of input tensors)
+float* new_x,                       output after padding, [n * max_shape0 * max_shape1]
+int* mask,                          output mask, [n * max_shape0 * max_shape1]
+const int max_shape0,               max dim in d0
+const int max_shape1,               max dim in d1
+const int value = 0                 padding value
+
+void GroupPad2D_kernel :
+float** inputs,                     2-dim pointer store the inputs(list of tensor),
+const int* shape,                   each tensor's dim, length = 2(num of dim) * n(num of input tensors)
+float** new_x,                      output after padding, [group_num, group_tensor_cnt * max_shape0 * max_shape1]
+int** mask,                         output mask, [group_num, group_tensor_cnt * max_shape0 * max_shape1]
+const int* max_shape,               max dim in d0 and d1 of the group, [group_num * 2]
+const int* group_id,                tensor_id -> group_id, [n]
+const int* group_idx,               start tensor index of each group, [group_num]
+int value = 0                       padding value
+
+void Unpad2D_kernel :
+float* inputs,                      tensors after pad,
+const int* ori_shape,               each tensor's dim, length = 2(num of dim) * n(num of input tensors)
+float** outputs,                    tensors before padding
+const int max_shape0                max dim in d0
+const int max_shape1               max dim in d1
+
+void Pad3D :
+float** inputs,                     2-dim pointer store the inputs(list of tensor),
+const int* shape,                   each tensor's dim, length = 3(num of dim) * n(num of input tensors)
+float* new_x,                       output after padding, [n * max_shape0 * max_shape1 * max_shape2]
+int* mask,                          output mask, [n * max_shape0 * max_shape1 * max_shape2]
+const int max_shape0,               max dim in d0
+const int max_shape1,               max dim in d1
+const int max_shape2,               max dim in d2
+const int value = 0                 padding value
+
+void GroupPad3D_kernel :
+float** inputs,                     2-dim pointer store the inputs(list of tensor),
+const int* shape,                   each tensor's dim, length = 3(num of dim) * n(num of input tensors)
+float** new_x,                      output after padding, [group_num, group_tensor_cnt * max_shape0 * max_shape1 * max_shape2]
+int** mask,                         output mask, [group_num, group_tensor_cnt * max_shape0 * max_shape1 * max_shape2]
+const int* max_shape,               max dim in d0 and d1 of the group, [group_num * 3]
+const int* group_id,                tensor_id -> group_id, [n]
+const int* group_idx,               start tensor index of each group, [group_num]
+int value = 0                       padding value
+
+void Unpad3D_kernel :
+float* inputs,                      tensors after pad,
+const int* ori_shape,               each tensor's dim, length = 3(num of dim) * n(num of input tensors)
+float** outputs,                    tensors before padding
+const int max_shape0                max dim in d0
+const int max_shape1                max dim in d1
+const int max_shape2                max dim in d2
 
 
-void UnPad2D :
-const float* inputs,                            用一维保存输入的padded tensor，n*max_shape0*max_shape1
-const int* ori_shape,                       用指针保存二维的原始shape
-std::vector<torch::Tensor> outputs,         输出
-const int max_shape0，                      输入shape中0维度的最大值
-const int max_shape1，                      输入shape中1维度的最大值
 */
 
 inline int GetBlockSize(const int n, const int max_size = 1024) {
@@ -48,16 +96,6 @@ inline int GetBlockSize(const int n, const int max_size = 1024) {
     }
     return ret;
 }
-
-// __global__ void Pad1D_kernel(float* inputs, const int* shape, float* new_x, int* mask, 
-//                                 const int max_shape, const int value, int v_id) {
-//     const int cur_shape = shape[v_id];
-//     const int base = v_id * max_shape;
-//     for(auto tid = threadIdx.x; tid < max_shape; tid += blockDim.x) {
-//         new_x[base + tid] = (tid < cur_shape) ? __ldg(inputs + tid) : value;
-//         mask[base + tid] = (tid < cur_shape) ? 1 : value;
-//     }
-// }
 
 __global__ void Pad1D_kernel(float** inputs, const int* shape, float* new_x, int* mask, 
                                 const int max_shape, const int value = 0) {
@@ -71,9 +109,7 @@ __global__ void Pad1D_kernel(float** inputs, const int* shape, float* new_x, int
 }
 
 __global__ void GroupPad1D_kernel(float** inputs, const int* shape, float** new_x, int** mask, 
-                                const int* max_shape, const int* group_id, const int* group_idx, int value = 0) {
-    // group_id: batch_id -> group_id
-    // group_idx: 每个group的起始batch_id
+                                const int* max_shape, const int* group_id, const int* group_idx, const int value = 0) {
     const float* cur_in = inputs[blockIdx.x];
     const int cur_shape = shape[blockIdx.x];
     const int gid = group_id[blockIdx.x];
