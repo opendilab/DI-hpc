@@ -1,3 +1,4 @@
+#include <unistd.h>
 #include "hpc/rll/cuda/torch_utils/network/entry.h"
 #include "hpc/rll/cuda/torch_utils/network/lstm_kernel.h"
 
