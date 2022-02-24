@@ -7,6 +7,57 @@ namespace hpc {
 namespace rll {
 namespace cuda {
 
+std::vector<std::vector<int>> sample_split_group(const std::vector<torch::Tensor>& x, int group);
+std::vector<std::vector<int>> oracle_split_group(const std::vector<torch::Tensor>& x, int group);
+
+std::vector<torch::Tensor> Pad1DForward(
+    const std::vector<torch::Tensor>& inputs, 
+    const int& value);
+
+std::vector<std::vector<torch::Tensor>> GroupPad1DForward(
+    const std::vector<torch::Tensor>& inputs, 
+    const std::vector<int>& group_cnt,
+    const std::vector<int>& max_shape, 
+    const std::vector<int>& group_id, 
+    const std::vector<int>& group_idx, 
+    const int& value);
+
+std::vector<torch::Tensor> Unpad1DForward(
+    const torch::Tensor& inputs, 
+    const std::vector<int>& shape);
+
+std::vector<torch::Tensor> Pad2DForward(
+    const std::vector<torch::Tensor>& inputs, 
+    const int& value);
+
+std::vector<std::vector<torch::Tensor>> GroupPad2DForward(
+    const std::vector<torch::Tensor>& inputs, 
+    const std::vector<int>& group_cnt,
+    const std::vector<int>& max_shape, 
+    const std::vector<int>& group_id, 
+    const std::vector<int>& group_idx, 
+    const int& value);
+
+std::vector<torch::Tensor> Unpad2DForward(
+    const torch::Tensor& inputs, 
+    const std::vector<int>& shape);
+
+std::vector<torch::Tensor> Pad3DForward(
+    const std::vector<torch::Tensor>& inputs, 
+    const int& value);
+
+std::vector<std::vector<torch::Tensor>> GroupPad3DForward(
+    const std::vector<torch::Tensor>& inputs, 
+    const std::vector<int>& group_cnt,
+    const std::vector<int>& max_shape, 
+    const std::vector<int>& group_id, 
+    const std::vector<int>& group_idx, 
+    const int& value);
+
+std::vector<torch::Tensor> Unpad3DForward(
+    const torch::Tensor& inputs, 
+    const std::vector<int>& shape);
+
 // gae
 void GaeForward(
     const std::vector<torch::Tensor>& inputs,
