@@ -22,6 +22,8 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     m.def("GaeForward", &GaeForward, "gae forward (CUDA)");
     m.def("PPOForward", &PPOForward, "ppo forward (CUDA)");
     m.def("PPOBackward", &PPOBackward, "ppo backward (CUDA)");
+    m.def("PPOContinuousForward", &PPOContinuousForward, "ppo forward (CUDA)");
+    m.def("PPOContinuousBackward", &PPOContinuousBackward, "ppo backward (CUDA)");
     m.def("QNStepTdForward", &QNStepTdForward, "q_nstep_td forward (CUDA)");
     m.def("QNStepTdBackward", &QNStepTdBackward, "q_nstep_td backward (CUDA)");
     m.def("QNStepTdRescaleForward", &QNStepTdRescaleForward, "q_nstep_td_with_rescale forward (CUDA)");

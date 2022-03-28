@@ -6,7 +6,6 @@
 namespace hpc {
 namespace rll {
 namespace cuda {
-
 std::vector<std::vector<int>> sample_split_group(const std::vector<torch::Tensor>& x, int group);
 std::vector<std::vector<int>> oracle_split_group(const std::vector<torch::Tensor>& x, int group);
 
@@ -140,6 +139,17 @@ void PPOForward(
     float dual_clip);
 
 void PPOBackward(
+    const std::vector<torch::Tensor>& inputs,
+    std::vector<torch::Tensor>& outputs);
+
+void PPOContinuousForward(
+    const std::vector<torch::Tensor>& inputs,
+    std::vector<torch::Tensor>& outputs,
+    bool use_value_clip,
+    float clip_ratio,
+    float dual_clip);
+
+void PPOContinuousBackward(
     const std::vector<torch::Tensor>& inputs,
     std::vector<torch::Tensor>& outputs);
 

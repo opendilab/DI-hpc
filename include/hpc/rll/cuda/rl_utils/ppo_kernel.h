@@ -149,6 +149,171 @@ __global__ void categoricalProb(unsigned int num_output, const float* x, const i
     }
 }
 
+__global__ void IndependentProbEntropy(unsigned int num_output, const float* mu, const float* sigma, const int64_t* action,
+        float* prob, float* entropy, float* grad_prob_mu, float* grad_prob_sigma,  float* grad_entropy_sigma) {
+	unsigned int block_start = blockIdx.x * num_output;
+    unsigned int start = block_start + threadIdx.x;
+	unsigned int end = block_start + num_output;
+
+    // step 1: normal entropy = 0.5 + 0.5 * math.log(2 * math.pi) + torch.log(self.scale)
+	float normal_entropy = 0;
+	for (int i = start; i < end; i += blockDim.x) {
+        normal_entropy += 0.5 + 0.5 * std::log(2 * M_PI) + std::log(sigma[i]);
+	}
+    // step 2: independent entropy = _sum_rightmost(entropy, 1)
+    static __shared__ float s_independent_entropy;
+    float reduced_sum_entropy = blockReduceSum<float>(normal_entropy);
+	if (threadIdx.x == 0) {
+        s_independent_entropy = reduced_sum_entropy;
+    }
+	__syncthreads();
+
+    // step3 log_prob
+    float log_prob = 0;
+    for (int i = start; i < end; i += blockDim.x) {
+        log_prob += -pow((action[blockIdx.x] - mu[i]), 2) / (2 * pow(sigma[i], 2)) - std::log(sigma[i]) - std::log(std::sqrt(2 * M_PI));
+	}
+    static __shared__ float s_independent_prob;
+    float reduced_sum_prob = blockReduceSum<float>(log_prob);
+	if (threadIdx.x == 0) {
+        s_independent_prob = reduced_sum_prob;
+    }
+	__syncthreads();
+
+
+    // step 3. output
+	for (int i = start; i < end; i += blockDim.x) {
+        bool flag = ((i - block_start) == action[blockIdx.x]);
+
+        if (flag)
+            prob[blockIdx.x] = s_independent_prob;
+
+        entropy[blockIdx.x] = s_independent_entropy;
+
+
+        grad_prob_mu[i] = (action[blockIdx.x] - mu[i]) / pow(sigma[i], 2);
+        grad_prob_sigma[i] = pow(action[blockIdx.x] - mu[i], 2) / pow(sigma[i], 3) - 1 / sigma[i];
+
+        grad_entropy_sigma[i] = 1 / sigma[i];
+    }
+}
+
+__global__ void IndependentProb(unsigned int num_output, const float* mu, const float* sigma, const int64_t* action, float* prob) {
+	unsigned int block_start = blockIdx.x * num_output;
+    unsigned int start = block_start + threadIdx.x;
+	unsigned int end = block_start + num_output;
+
+	float log_prob = 0;
+    for (int i = start; i < end; i += blockDim.x) {
+        log_prob += -pow((action[blockIdx.x] - mu[i]), 2) / (2 * pow(sigma[i], 2)) - std::log(sigma[i]) - std::log(std::sqrt(2 * M_PI));
+	}
+    static __shared__ float s_independent_prob;
+    float reduced_sum_prob = blockReduceSum<float>(log_prob);
+	if (threadIdx.x == 0) {
+        s_independent_prob = reduced_sum_prob;
+    }
+	__syncthreads();
+
+	for (int i = start; i < end; i += blockDim.x) {
+        if ((i - block_start) == action[blockIdx.x]) {
+            prob[blockIdx.x] = s_independent_prob;
+        }
+    }
+}
+
+__global__ void ppoContinuousLoss(unsigned int batch_size, const float* value_new, const float* value_old,
+        const float* new_prob, const float* old_prob, const float* new_entropy,
+        const float* advantage, const float* return_, const float* weight,
+        bool use_value_clip, float clip_ratio, float dual_clip,
+        float* policy_loss, float* value_loss, float* entropy_loss, float* approx_kl, float* clipfrac,
+        float* grad_policy_loss_buf, float* grad_value_loss_buf, float* grad_entropy_loss_buf) {
+    unsigned int gid = threadIdx.x + blockIdx.x*blockDim.x; // batch_size
+    float scale = 1.f / batch_size;
+
+    float policy_loss_val = 0.f;
+    float value_loss_val = 0.f;
+    float entropy_loss_val = 0.f;
+    float approx_kl_val = 0.f;
+    float clipfrac_val = 0.f;
+    if (gid < batch_size) {
+        float w = weight[gid];
+        float adv = advantage[gid];
+
+        // entropy loss
+        entropy_loss_val = new_entropy[gid] * w;
+        grad_entropy_loss_buf[gid] = w * scale; // 对new_entropy求导
+
+        // policy_loss
+        float diff_prob = new_prob[gid] - old_prob[gid];
+        float ratio = std::exp(diff_prob);
+        bool ratio_clamp_flag = (ratio >= (1 - clip_ratio) && ratio <= (1 + clip_ratio));
+
+        float surr1 = ratio * adv;
+        float surr2 = clamp(ratio, 1 - clip_ratio, 1 + clip_ratio) * adv; // TODO basic_math.h, clamp
+
+        float grad_ratio = ratio;
+        float grad_surr1 = grad_ratio * adv;
+        float grad_surr2 = grad_ratio * adv * ratio_clamp_flag;
+
+        float min_surr = (surr1 <= surr2) ? surr1 : surr2;
+        float grad_min_surr = (surr1 <= surr2) ? grad_surr1 : grad_surr2;
+        if (dual_clip < 1.f) {
+            policy_loss_val = -min_surr * w;
+            grad_policy_loss_buf[gid] = (-grad_min_surr) * w * scale;  //对prob求导
+        } else {
+            float dual_clip_adv = dual_clip * adv;
+            float max_val = max(min_surr, dual_clip_adv);
+            policy_loss_val = -max_val * w;
+            if (min_surr >= dual_clip_adv) {
+                grad_policy_loss_buf[gid] = (-grad_min_surr) * w * scale;
+            } else {
+                grad_policy_loss_buf[gid] = 0;
+            }
+        }
+
+        // monitor info
+        approx_kl_val = -diff_prob;
+        if (!ratio_clamp_flag) clipfrac_val = 1.f;
+
+        // value loss
+        float diff_v_r = value_new[gid] - return_[gid];
+        float v_r_squre = diff_v_r * diff_v_r;
+        if (use_value_clip) {
+            float value_diff = value_new[gid] - value_old[gid];
+            float value_clip = value_old[gid] + clamp(value_diff, -clip_ratio, clip_ratio);
+            bool value_diff_clamp_flag = (value_diff >= -clip_ratio && value_diff <= clip_ratio);
+
+            float diff_vclip_r = value_clip - return_[gid];
+            float vclip_r_squre = diff_vclip_r * diff_vclip_r;
+            value_loss_val = 0.5 * (max(v_r_squre, vclip_r_squre) * w);
+
+            if (v_r_squre >= vclip_r_squre) {
+                grad_value_loss_buf[gid] = 0.5 * (2 * diff_v_r) * w * scale;
+            } else {
+                grad_value_loss_buf[gid] = 0.5 * (2 * diff_vclip_r * value_diff_clamp_flag) * w * scale;
+            }
+        } else {
+            value_loss_val = 0.5 * v_r_squre * w;
+            grad_value_loss_buf[gid] = 0.5 * (2 * diff_v_r) * w * scale; //直接对value new求导
+        }
+    }
+
+    // mean
+    float sum_policy_loss = blockReduceSum<float>(policy_loss_val);
+    float sum_value_loss = blockReduceSum<float>(value_loss_val);
+    float sum_entropy_loss = blockReduceSum<float>(entropy_loss_val);
+    float sum_approx_kl = blockReduceSum<float>(approx_kl_val);
+    float sum_clipfrac = blockReduceSum<float>(clipfrac_val);
+    if (threadIdx.x == 0) {
+        atomicAdd(policy_loss, sum_policy_loss * scale);
+        atomicAdd(value_loss, sum_value_loss * scale);
+        atomicAdd(entropy_loss, sum_entropy_loss * scale);
+        atomicAdd(approx_kl, sum_approx_kl * scale);
+        atomicAdd(clipfrac, sum_clipfrac * scale);
+    }
+}
+
+
 __global__ void ppoLoss(unsigned int batch_size, const float* value_new, const float* value_old,
         const float* logits_new_prob, const float* logits_old_prob, const float* logits_new_entropy,
         const float* advantage, const float* return_, const float* weight,
@@ -279,6 +444,29 @@ void __global__ ppoBackwardLogitsNew(unsigned int batch_size, unsigned int num_o
         // bp of: x - logsumexp(x), is: b_i - grad_logsumexp_i * sum_b
         float entropy_bp = pre_entropy_grad * grad_entropy[i] - grad_logits[i] * s_grad_entropy_val;
         grad_logits_new[i] = entropy_bp + policy_bp;
+    }
+}
+
+void __global__ ppoBackwardMuSigmaNew(unsigned int batch_size, unsigned int num_output,
+        const float* grad_policy_loss, const float* grad_entropy_loss,
+        const float* grad_policy_loss_buf, const float* grad_entropy_loss_buf,
+        const float* mu_grad_prob, const float* sigma_grad_prob, const float* sigma_grad_entropy, 
+        float* grad_mu_new, float* grad_sigma_new) {
+	unsigned int block_start = blockIdx.x * num_output;
+    unsigned int start = block_start + threadIdx.x;
+	unsigned int end = block_start + num_output;
+
+    float pre_entropy_grad = (*grad_entropy_loss) * grad_entropy_loss_buf[blockIdx.x];
+    float pre_policy_grad = (*grad_policy_loss) * grad_policy_loss_buf[blockIdx.x];
+
+	float grad_entropy_val = 0.f;
+	for (int i = start; i < end; i += blockDim.x) {
+        grad_entropy_val += pre_entropy_grad * sigma_grad_entropy[i];
+	}
+
+	for (int i = start; i < end; i += blockDim.x) {
+        grad_mu_new[i] = pre_policy_grad * mu_grad_prob[i];
+        grad_sigma_new[i] = pre_policy_grad * sigma_grad_prob[i] + grad_entropy_val;
     }
 }
 
