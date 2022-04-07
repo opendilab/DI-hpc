@@ -9,6 +9,11 @@ namespace cuda {
 std::vector<std::vector<int>> sample_split_group(const std::vector<torch::Tensor>& x, int group);
 std::vector<std::vector<int>> oracle_split_group(const std::vector<torch::Tensor>& x, int group);
 
+void RetraceForward(
+    const std::vector<torch::Tensor>& inputs,
+    std::vector<torch::Tensor>& outputs,
+    float gamma);
+
 std::vector<torch::Tensor> Pad1DForward(
     const std::vector<torch::Tensor>& inputs, 
     const int& value);
