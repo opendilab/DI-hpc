@@ -20,6 +20,7 @@ ext_modules.append(
             'src/rl_utils/entry.cpp',
             'src/rl_utils/dist_nstep_td.cu',
             'src/rl_utils/gae.cu',
+            'src/rl_utils/gru.cu',
             'src/rl_utils/retrace.cu',
             'src/rl_utils/padding.cu',
             'src/rl_utils/ppo.cu',

@@ -158,6 +158,17 @@ void PPOContinuousBackward(
     const std::vector<torch::Tensor>& inputs,
     std::vector<torch::Tensor>& outputs);
 
+void GRUForward(
+    const std::vector<torch::Tensor>& inputs,
+    std::vector<torch::Tensor>& outputs,
+    int TB,
+    int input_dim);
+
+void GRUBackward(
+    const std::vector<torch::Tensor>& inputs,
+    std::vector<torch::Tensor>& outputs,
+    int TB,
+    int input_dim);
 // iqn_nstep_td_error
 void IQNNStepTDErrorForward(
     const std::vector<torch::Tensor>& inputs,
