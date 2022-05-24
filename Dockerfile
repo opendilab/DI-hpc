@@ -8,11 +8,9 @@ RUN mkdir -p /workspace
 WORKDIR /workspace
 
 RUN apt update \
-    && apt-get install dialog apt-utils -y \
-    && apt install tzdata -y \
-    && apt-get install -y build-essential checkinstall \
+    && apt-get install build-essential checkinstall -y \
     && apt-get install libreadline-gplv2-dev libncursesw5-dev libssl-dev libsqlite3-dev tk-dev libgdbm-dev libc6-dev libbz2-dev -y \
-    && apt install libgl1-mesa-glx libglib2.0-0 libsm6 libxext6 libxrender-dev libffi-dev gnupg pciutils wget swig curl git vim make locales -y \
+    && apt install libffi-dev gnupg pciutils make wget git vim locales -y \
     && apt clean \
     && rm -rf /var/cache/apt/* \
     && sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen \
