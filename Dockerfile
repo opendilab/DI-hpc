@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.6.0-devel-ubuntu20.04 AS nvidia
+FROM nvidia/cuda:11.6.0-devel-ubuntu20.04 AS di-hpc-develop
 
 ENV TZ="Asia/Beijing"
 
@@ -24,6 +24,8 @@ RUN cd /workspace/ \
     && cd Python-3.8.13 \
     && ./configure --enable-optimizations \
     && make altinstall \
+    && ln -s /usr/local/bin/python3.8 /usr/bin/python3.8.13 \
+    && ln -s /usr/local/bin/python3.8 /usr/bin/python3.8 \
     && ln -s /usr/local/bin/python3.8 /usr/bin/python3 \
     && ln -s /usr/local/bin/python3.8 /usr/bin/python \
     && ln -s /usr/local/bin/pip3.8 /usr/bin/pip3 \
@@ -32,13 +34,38 @@ RUN cd /workspace/ \
     && rm -rf ./Python-3.8.13*
 
 RUN cd /workspace/ \
-    && git clone -b main https://github.com/opendilab/DI-engine.git \
-    && cd /workspace/DI-engine \
-    && pip install --no-cache-dir .[common_env,test] \
-    && pip install --no-cache-dir Autorom \
-    && AutoROM -y
+    && wget https://download.pytorch.org/whl/cu113/torch-1.11.0%2Bcu113-cp38-cp38-linux_x86_64.whl -O torch-1.10.0+cu113-cp38-cp38-linux_x86_64.whl \
+    && pip install --no-cache-dir /workspace/torch-1.10.0+cu113-cp38-cp38-linux_x86_64.whl \
+    && rm /workspace/torch-1.10.0+cu113-cp38-cp38-linux_x86_64.whl
 
-RUN cd /workspace/ \
-    && git clone -b main https://github.com/opendilab/DI-hpc.git \
-    && cd /workspace/DI-hpc \
-    && python setup.py install
+ADD setup.py /workspace/setup.py
+ADD hpc_rll /workspace/hpc_rll
+ADD include /workspace/include
+ADD src /workspace/src
+ADD tests /workspace/tests
+
+RUN python /workspace/setup.py install
+
+FROM nvidia/cuda:11.6.0-runtime-ubuntu20.04 AS di-hpc-runtime
+
+COPY --from=di-hpc-develop /usr/local/bin/ /usr/local/bin/
+COPY --from=di-hpc-develop /usr/local/include/ /usr/local/include/
+COPY --from=di-hpc-develop /usr/local/lib/ /usr/local/lib/
+COPY --from=di-hpc-develop /usr/local/share/ /usr/local/share/
+
+RUN ln -s /usr/local/bin/python3.8 /usr/bin/python3 \
+    && ln -s /usr/local/bin/python3.8 /usr/bin/python \
+    && ln -s /usr/local/bin/pip3.8 /usr/bin/pip3 \
+    && ln -s /usr/local/bin/pip3.8 /usr/bin/pip
+
+FROM ubuntu:20.04 AS di-hpc-nightly
+
+COPY --from=di-hpc-develop /usr/local/bin/ /usr/local/bin/
+COPY --from=di-hpc-develop /usr/local/include/ /usr/local/include/
+COPY --from=di-hpc-develop /usr/local/lib/ /usr/local/lib/
+COPY --from=di-hpc-develop /usr/local/share/ /usr/local/share/
+
+RUN ln -s /usr/local/bin/python3.8 /usr/bin/python3 \
+    && ln -s /usr/local/bin/python3.8 /usr/bin/python \
+    && ln -s /usr/local/bin/pip3.8 /usr/bin/pip3 \
+    && ln -s /usr/local/bin/pip3.8 /usr/bin/pip
