@@ -1,6 +1,8 @@
+import io
 import time
 from functools import reduce
 from operator import __mul__
+
 import numpy as np
 import torch
 import torch.profiler
@@ -36,14 +38,28 @@ def _get_baseline(lengths, m):
         positions.append(last_position)
 
     assert len(positions) == m + 1
-    return min_cost
+    positions = positions[::-1]
 
-    # print(min_cost)  # minimal cost
-    # for i in range(0, m):  # solution
-    #     start = positions[i] + 1
-    #     end = positions[i + 1]
-    #     cost = p(start, end)
-    #     print(i, arr[start:end + 1], start, end, cost)
+    solution = []
+    for i in range(0, m):  # solution
+        start = positions[i] + 1
+        end = positions[i + 1]
+        cost = p(start, end)
+        solution.append((arr[start:end + 1], cost))
+
+    return min_cost, solution
+
+
+def _expr_solution(solution):
+    with io.StringIO() as sf:
+        all_costs = []
+        for i, (arr, cost) in enumerate(solution):
+            assert len(arr) * arr[-1] == cost
+            print(f'Group {i}: {arr}, {len(arr)} * {arr[-1]} = {cost}', file=sf)
+            all_costs.append(cost)
+
+        print(f'{" + ".join(map(str, all_costs))} = {sum(all_costs)}', file=sf)
+        return sf.getvalue()
 
 
 B = 64
@@ -96,9 +112,10 @@ def test_padding_1D(times=5, scheme=None):
 
             ori_lengths = [d.shape[0] for d in data]
             final_size = reduce(__mul__, padding_data.shape)
-            expected_size = _get_baseline(ori_lengths, 1)
+            expected_size, solution = _get_baseline(ori_lengths, 1)
             assert final_size <= expected_size, \
-                f'No more than {expected_size} expected, but {final_size} found actually.'
+                f'No more than {expected_size} expected, but {final_size} found actually.\n' \
+                f'A better solution is:\n{_expr_solution(solution)}'
 
             print('epoch: {}, {} cost time: {}'.format(i, name, time.time() - t))
             # profiler.step()
@@ -136,9 +153,10 @@ def test_padding_1D(times=5, scheme=None):
 
                 ori_lengths = [d.shape[0] for d in data]
                 final_size = sum([reduce(__mul__, sp.shape) for sp in padding_data])
-                expected_size = _get_baseline(ori_lengths, 4)
+                expected_size, solution = _get_baseline(ori_lengths, 4)
                 assert final_size <= expected_size, \
-                    f'No more than {expected_size} expected, but {final_size} found actually.'
+                    f'No more than {expected_size} expected, but {final_size} found actually.\n' \
+                    f'A better solution is:\n{_expr_solution(solution)}'
 
                 print('epoch: {}, {} {} cost time: {}'.format(i, name, mode, time.time() - t))
                 sorted_data = sorted(data, key=lambda t: reduce(lambda x, y: x * y, t.shape))
@@ -155,6 +173,7 @@ def test_padding_1D(times=5, scheme=None):
         assert len(padding_data) == 1
         assert padding_data[0].shape == (B, 32)
         print("{} test_padding_1D same data group OK".format(name))
+
 
 if __name__ == '__main__':
     test_padding_1D()
