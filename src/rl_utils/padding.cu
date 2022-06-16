@@ -10,14 +10,15 @@ std::vector<std::vector<int>> sample_split_group(const std::vector<torch::Tensor
     int dim = x[0].sizes().size();
     std::vector<std::vector<int>> result;
     std::vector<int> sampled_idx;
-    int last_rand = -1;
     int now_rand = -1;
+    std::unordered_map<int, bool> used_id;
     for(int i = 0; i < group - 1; i++) {
-        while(now_rand == last_rand) {
-            now_rand = (rand() % (N-2)) + 1;
+        now_rand = (rand() % (N - 1));
+        while(used_id[now_rand]) {
+            now_rand = (rand() % (N - 1));
         }
         sampled_idx.push_back(now_rand);
-        last_rand = now_rand;
+        used_id[now_rand] = true;
     }
     sort(sampled_idx.begin(), sampled_idx.end());
     sampled_idx.push_back(N-1);
