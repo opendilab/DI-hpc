@@ -11,13 +11,13 @@ coma_loss = namedtuple('coma_loss', ['policy_loss', 'q_value_loss', 'entropy_los
 class COMAFunction(torch.autograd.Function):
     @staticmethod
     def forward(ctx, logit, action, q_value, target_q_value, reward, weight,
-            gamma, lambda_, q_taken, target_q_taken, prob, adv, entropy, return_,
+            gamma, lambda_, reward_new, q_taken, target_q_taken, prob, adv, entropy, return_,
             logits_grad_logits, logits_grad_prob, logits_grad_adv, logits_grad_entropy, qvalue_grad_adv,
             grad_policy_loss_buf, grad_value_loss_buf, grad_entropy_loss_buf,
             policy_loss, value_loss, entropy_loss, grad_q_value, grad_logit):
 
         inputs = [logit, action, q_value, target_q_value, reward, weight]
-        outputs = [q_taken, target_q_taken, prob, adv, entropy, return_, 
+        outputs = [reward_new, q_taken, target_q_taken, prob, adv, entropy, return_, 
         logits_grad_logits, logits_grad_prob, logits_grad_adv, logits_grad_entropy, qvalue_grad_adv,
         grad_policy_loss_buf, grad_value_loss_buf, grad_entropy_loss_buf,
             policy_loss, value_loss, entropy_loss]
@@ -43,7 +43,7 @@ class COMAFunction(torch.autograd.Function):
 
         grad_q_value = outputs[0]
         grad_logit = outputs[1]
-        return grad_logit, None, grad_q_value, None, None, None, None, None, None, None, None, None, None, None, None, None
+        return grad_logit, None, grad_q_value, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None
 
 
 
@@ -68,6 +68,7 @@ class COMA(torch.nn.Module):
         """
 
         super().__init__()
+        self.register_buffer('reward_new', torch.zeros(T,B,A))
         self.register_buffer('q_taken', torch.zeros(T,B,A))
         self.register_buffer('target_q_taken', torch.zeros(T,B,A))
         self.register_buffer('prob', torch.zeros(T,B,A))
@@ -134,7 +135,7 @@ class COMA(torch.nn.Module):
 
         policy_loss, value_loss, entropy_loss = COMAFunction.apply(
                 logit, action, q_value, target_q_value, reward, weight,
-                gamma, lambda_, self.q_taken, self.target_q_taken, self.prob, self.adv, self.entropy, self.return_,
+                gamma, lambda_, self.reward_new, self.q_taken, self.target_q_taken, self.prob, self.adv, self.entropy, self.return_,
                 self.logits_grad_logits, self.logits_grad_prob, self.logits_grad_entropy, self.logits_grad_adv, self.qvalue_grad_adv,
                 self.grad_policy_loss_buf, self.grad_value_loss_buf, self.grad_entropy_loss_buf,
                 self.policy_loss, self.value_loss, self.entropy_loss,

@@ -9,15 +9,16 @@ namespace hpc {
 namespace rll {
 namespace cuda {
 
-__global__ void COMAGather(unsigned int N, unsigned int num_output, const float* q_value, 
-        const float* target_q_value, const int64_t* action, float* q_taken, float* target_q_taken) {
-    unsigned int block_start = blockIdx.x * num_output;
+__global__ void COMAGather(unsigned int N, unsigned int B, unsigned int A, const float* q_value, 
+        const float* target_q_value, const int64_t* action, float* q_taken, float* target_q_taken, const float* reward, float* reward_new) {
+    unsigned int block_start = blockIdx.x * B * A;
     unsigned int start = block_start + threadIdx.x;
-	unsigned int end = block_start + num_output;
+	unsigned int end = block_start + B * A;
     for(int i = start; i < end; i += blockDim.x) {
         int index = action[i];
         q_taken[i] = q_value[i * N + index];
         target_q_taken[i] = target_q_value[i * N + index];
+        reward_new[i] = reward[(i - block_start) / A + blockIdx.x * B];
     }
 }
 
@@ -176,7 +177,7 @@ __global__ void COMALoss(unsigned int T, unsigned int BA, const float* q_taken, 
         grad_policy_loss_buf[gid] = w * scale;
         grad_value_loss_buf[gid] = 0;
         if(gid < (T - 1) * BA) {
-            value_loss_val = pow((q_taken[gid] - return_[gid]), 2);
+            value_loss_val = pow((q_taken[gid] - return_[gid]), 2) * w;
             grad_value_loss_buf[gid] = 2 * (q_taken[gid] - return_[gid]) * w * scale_v;
 
         }

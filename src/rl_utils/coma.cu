@@ -31,6 +31,7 @@ void COMAForward(
 
 
     index = 0;
+    torch::Tensor& reward_new = outputs[index++];
     torch::Tensor& q_taken = outputs[index++];
     torch::Tensor& target_q_taken = outputs[index++];
     torch::Tensor& prob = outputs[index++];
@@ -62,8 +63,8 @@ void COMAForward(
         unsigned int block_size = DEFAULT_WARP_NUM * WARP_SIZE;
         unsigned int grid_size = T;
         COMAGather<<<grid_size, block_size>>>(
-                N, B*A, (float*)(q_value.data_ptr()), (float*)(target_q_value.data_ptr()), (int64_t*)(action.data_ptr()),
-                (float*)(q_taken.data_ptr()), (float*)(target_q_taken.data_ptr()));
+                N, B, A, (float*)(q_value.data_ptr()), (float*)(target_q_value.data_ptr()), (int64_t*)(action.data_ptr()),
+                (float*)(q_taken.data_ptr()), (float*)(target_q_taken.data_ptr()), (float*)(reward.data_ptr()), (float*)(reward_new.data_ptr()));
     }
 
     {
@@ -81,7 +82,7 @@ void COMAForward(
         unsigned int block_size = DEFAULT_WARP_NUM * WARP_SIZE;
         unsigned int grid_size = (B*A + block_size - 1) / block_size;;
         GeneralizedLambdaReturns<<<grid_size, block_size>>>(
-                T, B*A, (float*)(target_q_taken.data_ptr()), (float*)(reward.data_ptr()), (float*)(return_.data_ptr()),
+                T, B*A, (float*)(target_q_taken.data_ptr()), (float*)(reward_new.data_ptr()), (float*)(return_.data_ptr()),
                 gamma, lambda_);
     }
 

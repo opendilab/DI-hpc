@@ -6,15 +6,17 @@ import hpc_rl_utils
 
 class GRUFunction(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, x, bg, g, Wzy, Uzx, Wgy, Ugrx, grad_Wzy, grad_Uzx, grad_Wgy, grad_Ugrx, grad_bg, h, z):
+    def forward(ctx, x, bg, g, Wzy, Uzx, Wgy, Ugrx, grad_Wzy, grad_Uzx, grad_Wgy, grad_Ugrx, grad_bg, h, z, TB, input_dim):
 
-        inputs = [x, Wzy, Uzx, Wgy, bg]
+        inputs = [x, Wzy, Uzx, Wgy, Ugrx, bg]
         outputs = [g, h, z]
 
-        hpc_rl_utils.GRUForward(inputs, outputs)
+        hpc_rl_utils.GRUForward(inputs, outputs, TB, input_dim)
 
         bp_inputs = [h, z, x]
         bp_outputs = [grad_Wzy, grad_Uzx, grad_Wgy, grad_Ugrx, grad_bg]
+        ctx.TB = TB
+        ctx.input_dim = input_dim
         ctx.bp_inputs = bp_inputs
         ctx.bp_outputs = bp_outputs
 
@@ -27,7 +29,7 @@ class GRUFunction(torch.autograd.Function):
             inputs.append(var)
         outputs = ctx.bp_outputs
 
-        hpc_rl_utils.GRUBackward(inputs, outputs)
+        hpc_rl_utils.GRUBackward(inputs, outputs, ctx.TB, ctx.input_dim)
 
         grad_Wzy = outputs[0]
         grad_Uzx = outputs[1]
@@ -46,7 +48,7 @@ class GRU(torch.nn.Module):
         __init__, forward
     """
 
-    def __init__(self, T, B, input_dim):
+    def __init__(self, T, B, input_dim, bg: float = 2.):
         r"""
         Overview
             initialization of PPO
@@ -65,6 +67,11 @@ class GRU(torch.nn.Module):
         self.Wg = torch.nn.Linear(input_dim, input_dim, bias=False)
         self.Ug = torch.nn.Linear(input_dim, input_dim, bias=False)
         self.bg = torch.nn.Parameter(torch.full([input_dim], bg))  # bias
+
+
+        self.sigmoid = torch.nn.Sigmoid()
+        self.TB = T * B
+        self.input_dim = input_dim
 
 
         self.register_buffer('grad_Wzy', torch.zeros(T*B, input_dim))
@@ -114,7 +121,7 @@ class GRU(torch.nn.Module):
 
         assert(x.is_cuda)
         assert(y.is_cuda)
-        r = torch.nn.Sigmoid(self.Wr(y) + self.Ur(x))
+        r = self.sigmoid(self.Wr(y) + self.Ur(x))
         self.Wzy = self.Wz(y)
         self.Uzx = self.Uz(x)
         self.Wgy = self.Wg(y)
@@ -122,6 +129,6 @@ class GRU(torch.nn.Module):
 
 
 
-        g = GRUFunction.apply(x, self.bg.data, self.g, self.Wzy, self.Uzx, self.Wgy, self.Ugrx, self.grad_Wzy, self.grad_Uzx, self.grad_Wgy, self.grad_Ugrx, self.grad_bg, self.h, self.z)
+        g = GRUFunction.apply(x, self.bg.data, self.g, self.Wzy, self.Uzx, self.Wgy, self.Ugrx, self.grad_Wzy, self.grad_Uzx, self.grad_Wgy, self.grad_Ugrx, self.grad_bg, self.h, self.z, self.TB, self.input_dim)
 
         return g
