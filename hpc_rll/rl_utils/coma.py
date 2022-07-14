@@ -12,20 +12,20 @@ class COMAFunction(torch.autograd.Function):
     @staticmethod
     def forward(ctx, logit, action, q_value, target_q_value, reward, weight,
             gamma, lambda_, reward_new, q_taken, target_q_taken, prob, adv, entropy, return_,
-            logits_grad_logits, logits_grad_prob, logits_grad_adv, logits_grad_entropy, qvalue_grad_adv,
+            logits_grad_logits, logits_grad_prob, logits_grad_entropy,
             grad_policy_loss_buf, grad_value_loss_buf, grad_entropy_loss_buf,
             policy_loss, value_loss, entropy_loss, grad_q_value, grad_logit):
 
         inputs = [logit, action, q_value, target_q_value, reward, weight]
         outputs = [reward_new, q_taken, target_q_taken, prob, adv, entropy, return_, 
-        logits_grad_logits, logits_grad_prob, logits_grad_adv, logits_grad_entropy, qvalue_grad_adv,
+        logits_grad_logits, logits_grad_prob, logits_grad_entropy,
         grad_policy_loss_buf, grad_value_loss_buf, grad_entropy_loss_buf,
             policy_loss, value_loss, entropy_loss]
 
         hpc_rl_utils.COMAForward(inputs, outputs, gamma, lambda_)
 
-        bp_inputs = [grad_policy_loss_buf, grad_value_loss_buf, grad_entropy_loss_buf, prob, adv, action,
-                    logits_grad_logits, logits_grad_prob, logits_grad_adv, logits_grad_entropy, qvalue_grad_adv]
+        bp_inputs = [grad_policy_loss_buf, grad_value_loss_buf, grad_entropy_loss_buf, adv, action,
+                    logits_grad_logits, logits_grad_prob, logits_grad_entropy]
         bp_outputs = [grad_q_value, grad_logit]
         ctx.bp_inputs = bp_inputs
         ctx.bp_outputs = bp_outputs
@@ -43,7 +43,7 @@ class COMAFunction(torch.autograd.Function):
 
         grad_q_value = outputs[0]
         grad_logit = outputs[1]
-        return grad_logit, None, grad_q_value, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None
+        return grad_logit, None, grad_q_value, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None
 
 
 
@@ -78,8 +78,6 @@ class COMA(torch.nn.Module):
         self.register_buffer('logits_grad_logits', torch.zeros(T,B,A, N))
         self.register_buffer('logits_grad_prob', torch.zeros(T,B,A, N))
         self.register_buffer('logits_grad_entropy', torch.zeros(T,B,A, N))
-        self.register_buffer('logits_grad_adv', torch.zeros(T,B,A, N))
-        self.register_buffer('qvalue_grad_adv', torch.zeros(T,B,A, N))
         self.register_buffer('grad_policy_loss_buf', torch.zeros(T, B, A))
         self.register_buffer('grad_value_loss_buf', torch.zeros(T, B, A))
         self.register_buffer('grad_entropy_loss_buf', torch.zeros(T, B, A))

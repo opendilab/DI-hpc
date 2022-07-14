@@ -40,9 +40,7 @@ void COMAForward(
     torch::Tensor& return_ = outputs[index++];
     torch::Tensor& logits_grad_logits = outputs[index++];
     torch::Tensor& logits_grad_prob = outputs[index++];
-    torch::Tensor& logits_grad_adv = outputs[index++];
     torch::Tensor& logits_grad_entropy = outputs[index++];
-    torch::Tensor& qvalue_grad_adv = outputs[index++];
     torch::Tensor& grad_policy_loss_buf = outputs[index++];
     torch::Tensor& grad_value_loss_buf = outputs[index++];
     torch::Tensor& grad_entropy_loss_buf = outputs[index++];
@@ -73,8 +71,7 @@ void COMAForward(
         ProbEntropyAdv<<<grid_size, block_size>>>(
                 N, (float*)(logit.data_ptr()), (int64_t*)(action.data_ptr()), (float*)(q_value.data_ptr()), (float*)(q_taken.data_ptr()),
                 (float*)(prob.data_ptr()), (float*)(adv.data_ptr()), (float*)(entropy.data_ptr()),
-                (float*)(logits_grad_logits.data_ptr()), (float*)(logits_grad_prob.data_ptr()), (float*)(logits_grad_adv.data_ptr()),
-                (float*)(logits_grad_entropy.data_ptr()), (float*)(qvalue_grad_adv.data_ptr()));
+                (float*)(logits_grad_logits.data_ptr()), (float*)(logits_grad_prob.data_ptr()), (float*)(logits_grad_entropy.data_ptr()));
 
     }
 
@@ -109,14 +106,11 @@ void COMABackward(
     const torch::Tensor& grad_policy_loss_buf = inputs[index++];
     const torch::Tensor& grad_value_loss_buf = inputs[index++];
     const torch::Tensor& grad_entropy_loss_buf = inputs[index++];
-    const torch::Tensor& prob = inputs[index++];
     const torch::Tensor& adv = inputs[index++];
     const torch::Tensor& action = inputs[index++];
     const torch::Tensor& logits_grad_logits = inputs[index++];
     const torch::Tensor& logits_grad_prob = inputs[index++];
-    const torch::Tensor& logits_grad_adv = inputs[index++];
     const torch::Tensor& logits_grad_entropy = inputs[index++];
-    const torch::Tensor& qvalue_grad_adv = inputs[index++];
 
     index = 0;
     torch::Tensor& grad_q_value = outputs[index++];
@@ -133,9 +127,8 @@ void COMABackward(
     COMABackward<<<grid_size, block_size>>>(
             N, (float*)(grad_policy_loss.data_ptr()), (float*)(grad_value_loss.data_ptr()), (float*)(grad_entropy_loss.data_ptr()),
             (float*)(grad_policy_loss_buf.data_ptr()), (float*)(grad_value_loss_buf.data_ptr()), (float*)(grad_entropy_loss_buf.data_ptr()),
-            (float*)(prob.data_ptr()), (float*)(adv.data_ptr()), (int64_t*)(action.data_ptr()), (float*)(logits_grad_logits.data_ptr()), (float*)(logits_grad_prob.data_ptr()),
-            (float*)(logits_grad_adv.data_ptr()), (float*)(logits_grad_entropy.data_ptr()), (float*)(qvalue_grad_adv.data_ptr()),
-            (float*)(grad_q_value.data_ptr()), (float*)(grad_logits.data_ptr()));
+            (float*)(adv.data_ptr()), (int64_t*)(action.data_ptr()), (float*)(logits_grad_logits.data_ptr()), (float*)(logits_grad_prob.data_ptr()),
+            (float*)(logits_grad_entropy.data_ptr()), (float*)(grad_q_value.data_ptr()), (float*)(grad_logits.data_ptr()));
     
 }
 

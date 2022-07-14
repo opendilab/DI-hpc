@@ -23,7 +23,7 @@ __global__ void COMAGather(unsigned int N, unsigned int B, unsigned int A, const
 }
 
 __global__ void ProbEntropyAdv(unsigned int N, const float* x, const int64_t* action, float* q_value, float* q_taken, 
-        float* prob, float* adv, float* entropy, float* grad_logits, float* grad_prob, float* grad_adv, float* grad_entropy, float* qvalue_grad_adv) {
+        float* prob, float* adv, float* entropy, float* grad_logits, float* grad_prob, float* grad_entropy) {
     unsigned int block_start = blockIdx.x * N;
     unsigned int start = block_start + threadIdx.x;
 	unsigned int end = block_start + N;
@@ -130,11 +130,6 @@ __global__ void ProbEntropyAdv(unsigned int N, const float* x, const int64_t* ac
         // grad of -sum(logits * softmax(logits))
         grad_entropy[i] = (-1.f) * softmax_logits * (1 + logits - s_sum_entropy_val);
 
-        // logit grad adv : 
-        grad_adv[i] = (-1.f) * softmax_logits * (q_value[i] - s_sum_grad_adv_val);
-
-        // q_value grad adv:
-        qvalue_grad_adv[i] = (flag ? 1 : 0) - softmax_logits;
     }
 
     float reduced_sum_baseline_val = blockReduceSum<float>(sum_baseline_val);
@@ -179,13 +174,8 @@ __global__ void COMALoss(unsigned int T, unsigned int BA, const float* q_taken, 
         if(gid < (T - 1) * BA) {
             value_loss_val = pow((q_taken[gid] - return_[gid]), 2) * w;
             grad_value_loss_buf[gid] = 2 * (q_taken[gid] - return_[gid]) * w * scale_v;
-
         }
-
-
-
     }
-
     // mean
     float sum_policy_loss = blockReduceSum<float>(policy_loss_val);
     float sum_value_loss = blockReduceSum<float>(value_loss_val);
@@ -199,9 +189,9 @@ __global__ void COMALoss(unsigned int T, unsigned int BA, const float* q_taken, 
 
 
 __global__ void COMABackward(unsigned int N, const float* grad_policy_loss, const float* grad_value_loss, const float* grad_entropy_loss, 
-                            const float* grad_policy_loss_buf, const float* grad_value_loss_buf, const float* grad_entropy_loss_buf, const float* prob, const float* adv,
-                            const int64_t* action,  const float* logits_grad_logits, const float* logits_grad_prob, const float* logits_grad_adv, 
-                            const float* logits_grad_entropy, const float* qvalue_grad_adv, float* grad_q_value, float* grad_logits) {
+                            const float* grad_policy_loss_buf, const float* grad_value_loss_buf, const float* grad_entropy_loss_buf, const float* adv,
+                            const int64_t* action,  const float* logits_grad_logits, const float* logits_grad_prob,
+                            const float* logits_grad_entropy, float* grad_q_value, float* grad_logits) {
     unsigned int block_start = blockIdx.x * N;
     unsigned int start = block_start + threadIdx.x;
 	unsigned int end = block_start + N;
@@ -224,23 +214,15 @@ __global__ void COMABackward(unsigned int N, const float* grad_policy_loss, cons
 
 	for (int i = start; i < end; i += blockDim.x) {
         bool flag = ((i - block_start) == action[blockIdx.x]);
-        float policy_bp_logit = (-1) * pre_policy_grad * (logits_grad_prob[i] * adv[blockIdx.x] + logits_grad_adv[i] * prob[blockIdx.x]);
+        float policy_bp_logit = (-1) * pre_policy_grad * logits_grad_prob[i] * adv[blockIdx.x];
         // bp of: x - logsumexp(x), is: b_i - grad_logsumexp_i * sum_b
         float entropy_bp = pre_entropy_grad * logits_grad_entropy[i] - logits_grad_logits[i] * s_grad_entropy_val;
-        grad_logits[i] = entropy_bp + policy_bp_logit;
+        grad_logits[i] = policy_bp_logit + entropy_bp;
 
         float q_value_bp = (flag ? 1 : 0) * (*grad_value_loss) * grad_value_loss_buf[blockIdx.x];
-        float policy_bp_q_value = (-1) * pre_policy_grad * qvalue_grad_adv[i] * prob[blockIdx.x];
 
-        grad_q_value[i] = q_value_bp + policy_bp_q_value;
-
-
-    }
-
-
-
-
-                    
+        grad_q_value[i] = q_value_bp; // + policy_bp_q_value;
+    }         
 }
 
    

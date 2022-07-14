@@ -127,8 +127,6 @@ class GRU(torch.nn.Module):
         self.Wgy = self.Wg(y)
         self.Ugrx = self.Ug(torch.mul(r, x))
 
-
-
         g = GRUFunction.apply(x, self.bg.data, self.g, self.Wzy, self.Uzx, self.Wgy, self.Ugrx, self.grad_Wzy, self.grad_Uzx, self.grad_Wgy, self.grad_Ugrx, self.grad_bg, self.h, self.z, self.TB, self.input_dim)
 
         return g
