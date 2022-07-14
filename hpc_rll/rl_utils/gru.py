@@ -42,7 +42,7 @@ class GRUFunction(torch.autograd.Function):
 class GRU(torch.nn.Module):
     """
     OverviewI:
-        Implementation of Proximal Policy Optimization (arXiv:1707.06347) with value_clip and dual_clip
+        Implementation of GRU
 
     Interface:
         __init__, forward
@@ -51,11 +51,12 @@ class GRU(torch.nn.Module):
     def __init__(self, T, B, input_dim, bg: float = 2.):
         r"""
         Overview
-            initialization of PPO
+            initialization of GRU
 
         Arguments:
+            - T (:obj:`int`): time step
             - B (:obj:`int`): batch size
-            - N (:obj:`int`): number of output
+
         """
 
         super().__init__()
@@ -94,29 +95,13 @@ class GRU(torch.nn.Module):
     def forward(self, x, y):
         """
         Overview:
-            forward of PPO
+            forward of GRU
         Arguments:
-            - logit_new (:obj:`torch.FloatTensor`): :math:`(B, N)`, where B is batch size and N is action dim
-            - logit_old (:obj:`torch.FloatTensor`): :math:`(B, N)`
-            - action (:obj:`torch.LongTensor`): :math:`(B, )`
-            - value_new (:obj:`torch.FloatTensor`): :math:`(B, )`
-            - value_old (:obj:`torch.FloatTensor`): :math:`(B, )`
-            - adv (:obj:`torch.FloatTensor`): :math:`(B, )`
-            - return (:obj:`torch.FloatTensor`): :math:`(B, )`
-            - weight (:obj:`torch.FloatTensor` or :obj:`None`): :math:`(B, )`
-            - clip_ratio (:obj:`float`): the ppo clip ratio for the constraint of policy update, defaults to 0.2
-            - use_value_clip (:obj:`bool`): whether to use clip in value loss with the same ratio as policy
-            - dual_clip (:obj:`float`): a parameter c mentioned in arXiv:1912.09729 Equ. 5, shoule be in [1, inf),\
-            defaults to 5.0, if you don't want to use it, set this parameter to None
+            - x (:obj:`torch.FloatTensor`): :math:`(T, B, N)`,
+            - y (:obj:`torch.FloatTensor`): :math:`(T, B, N)`
 
         Returns:
-            - ppo_loss (:obj:`namedtuple`): the ppo loss item, all of them are the differentiable 0-dim tensor
-            - ppo_info (:obj:`namedtuple`): the ppo optim information for monitoring, all of them are Python scalar
-
-        .. note::
-            adv is already normalized value (adv - adv.mean()) / (adv.std() + 1e-8), and there are many
-            ways to calculate this mean and std, like among data buffer or train batch, so we don't couple
-            this part into ppo_error, you can refer to our examples for different ways.
+            - g (:obj:`torch.FloatTensor`): the output of GRU
         """
 
         assert(x.is_cuda)

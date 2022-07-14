@@ -51,7 +51,7 @@ class COMAFunction(torch.autograd.Function):
 class COMA(torch.nn.Module):
     """
     OverviewI:
-        Implementation of Proximal Policy Optimization (arXiv:1707.06347) with value_clip and dual_clip
+        Implementation of COMA
 
     Interface:
         __init__, forward
@@ -60,11 +60,13 @@ class COMA(torch.nn.Module):
     def __init__(self, T, B, A, N):
         r"""
         Overview
-            initialization of PPO
+            initialization of COMA
 
         Arguments:
+            - T (:obj:`int`): time step
             - B (:obj:`int`): batch size
-            - N (:obj:`int`): number of output
+            - A (:obj:`int`): number of agent
+            - N (:obj:`int`): number of choice
         """
 
         super().__init__()
@@ -97,27 +99,15 @@ class COMA(torch.nn.Module):
         Overview:
             forward of PPO
         Arguments:
-            - logit_new (:obj:`torch.FloatTensor`): :math:`(B, N)`, where B is batch size and N is action dim
-            - logit_old (:obj:`torch.FloatTensor`): :math:`(B, N)`
-            - action (:obj:`torch.LongTensor`): :math:`(B, )`
-            - value_new (:obj:`torch.FloatTensor`): :math:`(B, )`
-            - value_old (:obj:`torch.FloatTensor`): :math:`(B, )`
-            - adv (:obj:`torch.FloatTensor`): :math:`(B, )`
-            - return (:obj:`torch.FloatTensor`): :math:`(B, )`
-            - weight (:obj:`torch.FloatTensor` or :obj:`None`): :math:`(B, )`
-            - clip_ratio (:obj:`float`): the ppo clip ratio for the constraint of policy update, defaults to 0.2
-            - use_value_clip (:obj:`bool`): whether to use clip in value loss with the same ratio as policy
-            - dual_clip (:obj:`float`): a parameter c mentioned in arXiv:1912.09729 Equ. 5, shoule be in [1, inf),\
-            defaults to 5.0, if you don't want to use it, set this parameter to None
+            - logit (:obj:`torch.FloatTensor`): :math:`(T, B, A, N)`, where B is batch size and N is action dim
+            - action (:obj:`torch.IntTensor`): :math:`(T, B, A)`
+            - q_value (:obj:`torch.FloatTensor`): :math:`(T, B, A, N)`
+            - target_q_value (:obj:`torch.FloatTensor`): :math:`(T, B, A, N)`
+            - reward (:obj:`torch.FloatTensor`): :math:`(T, B)`
+            - weight (:obj:`torch.FloatTensor` or :obj:`None`): :math:`(T, B, A)`
 
         Returns:
-            - ppo_loss (:obj:`namedtuple`): the ppo loss item, all of them are the differentiable 0-dim tensor
-            - ppo_info (:obj:`namedtuple`): the ppo optim information for monitoring, all of them are Python scalar
-
-        .. note::
-            adv is already normalized value (adv - adv.mean()) / (adv.std() + 1e-8), and there are many
-            ways to calculate this mean and std, like among data buffer or train batch, so we don't couple
-            this part into ppo_error, you can refer to our examples for different ways.
+            - coma_loss (:obj:`namedtuple`): the coma loss item, all of them are the differentiable 0-dim tensor
         """
 
         assert(logit.is_cuda)
