@@ -97,7 +97,7 @@ class COMA(torch.nn.Module):
             ):
         """
         Overview:
-            forward of PPO
+            forward of COMA
         Arguments:
             - logit (:obj:`torch.FloatTensor`): :math:`(T, B, A, N)`, where B is batch size and N is action dim
             - action (:obj:`torch.IntTensor`): :math:`(T, B, A)`
@@ -124,10 +124,8 @@ class COMA(torch.nn.Module):
         policy_loss, value_loss, entropy_loss = COMAFunction.apply(
                 logit, action, q_value, target_q_value, reward, weight,
                 gamma, lambda_, self.reward_new, self.q_taken, self.target_q_taken, self.prob, self.adv, self.entropy, self.return_,
-                self.logits_grad_logits, self.logits_grad_prob, self.logits_grad_entropy, self.logits_grad_adv, self.qvalue_grad_adv,
-                self.grad_policy_loss_buf, self.grad_value_loss_buf, self.grad_entropy_loss_buf,
-                self.policy_loss, self.value_loss, self.entropy_loss,
-                self.grad_q_value, self.grad_logit)
+                self.logits_grad_logits, self.logits_grad_prob, self.logits_grad_entropy, self.grad_policy_loss_buf, self.grad_value_loss_buf, 
+                self.grad_entropy_loss_buf, self.policy_loss, self.value_loss, self.entropy_loss, self.grad_q_value, self.grad_logit)
 
         return coma_loss(policy_loss, value_loss, entropy_loss)
 
