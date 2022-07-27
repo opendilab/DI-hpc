@@ -117,7 +117,7 @@ class COMA(torch.nn.Module):
         assert(reward.is_cuda)
         assert(weight.is_cuda)
         if weight is None:
-            weight = self.weight
+            weight = torch.ones_like(action)
         else:
             assert(weight.is_cuda)
 
