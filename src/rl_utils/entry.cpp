@@ -27,6 +27,8 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     m.def("GRUBackward", &GRUBackward, "gru backward (CUDA)");
     m.def("COMAForward", &COMAForward, "gru forward (CUDA)");
     m.def("COMABackward", &COMABackward, "gru backward (CUDA)");
+    m.def("SOFTARGMAXForward", &SOFTARGMAXForward, "softargmax forward (CUDA)");
+    m.def("SOFTARGMAXBackward", &SOFTARGMAXBackward, "softargmax backward (CUDA)");
     m.def("PPOContinuousForward", &PPOContinuousForward, "ppo forward (CUDA)");
     m.def("PPOContinuousBackward", &PPOContinuousBackward, "ppo backward (CUDA)");
     m.def("QNStepTdForward", &QNStepTdForward, "q_nstep_td forward (CUDA)");

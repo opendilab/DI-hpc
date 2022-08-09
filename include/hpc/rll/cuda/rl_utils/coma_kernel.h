@@ -165,6 +165,9 @@ __global__ void COMALoss(unsigned int T, unsigned int BA, const float* q_taken, 
 
     if(gid < T * BA) {
         float w = weight[gid];
+        if(abs(w) <= 1e-6) {
+            w = 1;
+        }
         entropy_loss_val = entropy[gid] * w;
         policy_loss_val = - adv[gid] * prob[gid] * w;
 

@@ -9,6 +9,14 @@ namespace cuda {
 std::vector<std::vector<int>> sample_split_group(const std::vector<torch::Tensor>& x, int group);
 std::vector<std::vector<int>> oracle_split_group(const std::vector<torch::Tensor>& x, int group);
 
+void SOFTARGMAXBackward(
+    std::vector<torch::Tensor>& inputs,
+    std::vector<torch::Tensor>& outputs);
+
+void SOFTARGMAXForward(
+    std::vector<torch::Tensor>& inputs,
+    std::vector<torch::Tensor>& outputs);
+
 void COMAForward(
     const std::vector<torch::Tensor>& inputs,
     std::vector<torch::Tensor>& outputs,
