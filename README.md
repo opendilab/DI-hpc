@@ -44,7 +44,7 @@ $ python3 tests/test_gae.py
 
 - [File an issue](https://github.com/opendilab/DI-hpc/issues/new/choose) on Github
 - Discuss on DI-hpc [slack communication channel](https://join.slack.com/t/opendilab/shared_invite/zt-v9tmv4fp-nUBAQEH1_Kuyu_q4plBssQ) or QQ group (700157520)
-- Email: opendilab.org.cn
+- Email: <opendilab.org.cn>
 
 We appreciate all the feedbacks and contributions to improve DI-engine, both algorithms and system designs. And `CONTRIBUTING.md` offers some necessary information. 
 
