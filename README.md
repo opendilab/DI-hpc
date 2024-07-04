@@ -40,10 +40,14 @@ You will get benchmark result by following commands:
 ```
 $ python3 tests/test_gae.py
 ```
+## TODO
+- [] Trition Kernel for Reinfocement Learning
+
 ## Feedback and Contribution
 
 - [File an issue](https://github.com/opendilab/DI-hpc/issues/new/choose) on Github
-- Discuss on DI-hpc [slack communication channel](https://join.slack.com/t/opendilab/shared_invite/zt-v9tmv4fp-nUBAQEH1_Kuyu_q4plBssQ) or QQ group (700157520)
+- Discuss on DI-engine's (also for DI-hpc) [discord server](https://discord.gg/dkZS2JF56X)
+- Contact our email (opendilab@pjlab.org.cn)
 
 We appreciate all the feedbacks and contributions to improve DI-engine, both algorithms and system designs. And `CONTRIBUTING.md` offers some necessary information. 
 
